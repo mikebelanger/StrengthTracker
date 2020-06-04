@@ -1,5 +1,5 @@
 # exercise types
-import options
+import options, json
 
 type
 
@@ -15,38 +15,63 @@ type
     MovementCategory* = enum
         Push, Pull, Squat, Hinge
 
+    Movement* = object
+        name*: string
+        movement_plane*: MovementPlane
+        body_area*: BodyArea
+        movement_type*: MovementType
+        movement_category*: MovementCategory
 
-template loop_through_enum(input_enum: untyped, input_str) =
 
-    for e in input_enum.low .. input_enum.high:
-        if $e == input_str: 
-            return some(e) 
-    
-    return none(input_enum)
+proc to_movement*(input_json: JsonNode): Option[Movement] =
+    if input_json.contains("name") and input_json["name"].getStr.len > 0:
 
-proc get_movement_plane*(input_str: string): Option[MovementPlane] =
-    loop_through_enum(MovementPlane, input_str)
+        try:
+            var movement = input_json.to(Movement)
+            return some(movement)
 
-proc get_body_area*(input_str: string): Option[BodyArea] =
-    loop_through_enum(BodyArea, input_str)
+        except KeyError as ke:
+            echo ke.msg
 
-proc get_movement_type*(input_str: string): Option[MovementType] =
-    loop_through_enum(MovementType, input_str)
-    
-proc get_movement_category*(input_str: string): Option[MovementCategory] =
-    loop_through_enum(MovementCategory, input_str)
+        except ValueError as ve:
+            echo ve.msg
+
+        except:
+            let e = getCurrentException()
+            echo e.msg
+
+        return none(Movement)
+
+    else:
+        echo "input json either doesn't have a name, or its blank."
+        return none(Movement)
 
 
 if isMainModule:
 
-    # for m in MovementPlane.low .. MovementPlane.high:
-    #     echo $m
-    #     echo ord(m)
+    let 
+        sample_json = parseJson("""
+            {
+                "name": "Push-up",
+                "movement_plane" : "Horizontal",
+                "movement_type" : "Unilateral",
+                "body_area": "Upergper",
+                "movement_category" : "Push"
+            }
+        """)
 
-    let x = get_movement_plane("Vertical")
-    echo $x
-    
-    let y = get_movement_plane("Blahblah")
-    echo $y
+        another_sample_json = parseJson("""
+            {
+                "name": "Push-up",
+                "movement_plane" : "Horizontal",
+                "movement_type" : "Unilateral",
+                "body_area": "Lower",
+                "movement_category" : "Push"
+            }
+        """)
 
-    echo x.isSome, y.isSome
+        sample = sample_json.to_movement
+        another_sample = another_sample_json.to_movement
+
+    echo sample.isNone
+    echo another_sample.isSome
