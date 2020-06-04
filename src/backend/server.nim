@@ -14,8 +14,8 @@ proc generateResponse(db_results: CRUDResult): JsonNode =
   var content: string = 
     case db_results.feedback_type:
     of createSuccess: "successfully inserted movement into db!: " 
-    of createAlreadyExists: "db entry already exists!"
-    of createInsufficientInput: "not enough input to add to database"
+    of createAlreadyExists: "db entry already exists!: "
+    of createInsufficientInput: "not enough input to add to database: "
     of dbUndefinedError: "undefined error"
 
   return %*{"content": content & db_results.feedback_details}
