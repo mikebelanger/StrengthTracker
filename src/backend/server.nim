@@ -10,7 +10,7 @@ import options
 
 let db = open("./src/backend/v27.db", "", "", "")
 
-proc generateResponse(db_results: CRUDResult): JsonNode =
+proc generate_response(db_results: CRUDResult): JsonNode =
   var content: string = 
     case db_results.feedback_type:
     of createSuccess: "successfully inserted movement into db!: " 
@@ -32,33 +32,37 @@ routes:
   post "/create_movement.json":
 
     var 
-      crud_result: CRUDResult
+      create_result: CRUDResult
       movement: Option[Movement]
       user_input = request.body.parseJson
 
+    # check to ensure movement has a name
     if user_input.contains("name") and user_input["name"].getStr.len > 0:
 
       movement = user_input.to_movement
       
+      # if we have a valid, complete Movement object, try to enter into db
       if isSome(movement):
-        crud_result = db.create_movement(get(movement))
+        create_result = db.create_movement(get(movement))
 
-        resp generateResponse(crud_result)
+        resp generate_response(create_result)
 
+      # otherwise, let the user know the movement isn't valid
       else:
 
-        crud_result = (feedback_type: createInsufficientInput,
-                    feedback_details: "likely a missing attribute to create movement object: " & user_input.getStr,
-                    db_id: 0)
+        create_result = (feedback_type: createInsufficientInput,
+                        feedback_details: "likely a missing attribute to create movement object: " & user_input.getStr,
+                        db_id: 0)
 
-        resp generateResponse(crud_result)
+        resp generate_response(create_result)
 
+    # if user hasn't named the movement
     else:
-      crud_result = (feedback_type: createInsufficientInput,
-                  feedback_details: "Missing name",
-                  db_id: 0)
+      create_result = (feedback_type: createInsufficientInput,
+                      feedback_details: "Missing name",
+                      db_id: 0)
 
-      resp generateResponse(crud_result)
+      resp generate_response(create_result)
 
 # READ
 # UPDATE
