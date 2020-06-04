@@ -1,7 +1,16 @@
 import ../app_types, db_sqlite, sequtils
 
 type
-    DbResult
+    CRUDResultKind* = enum
+        createSuccess,
+        createAlreadyExists,
+        createInsufficientInput,
+        dbUndefinedError
+
+    CRUDResult* = tuple
+        feedback_type: CRUDResultKind
+        feedback_details: string
+        db_id: int
 
 
 # CREATE
@@ -10,30 +19,36 @@ template enum_types_to_rows*(d: DbConn, input_enum: untyped) =
     for enumerated_state in input_enum.low .. input_enum.high:
         discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", movement.input_enum, movement.enumerated_state)
 
+template safely_use_sqlite(statements: untyped) =
+    try:
+        statements
+    
+    except DbError as de:
+        return (feedback_type: createAlreadyExists, feedback_details: de.msg, db_id: 0)
+
+    except:
+        return (feedback_type: dbUndefinedError, feedback_details: getCurrentExceptionMsg(), db_id: 0)
+
 
 proc not_blank(x: string): bool =
     return x != ""
 
-proc create_movement*(d: DbConn, movement: Movement): int64 =
+proc create_movement*(d: DbConn, movement: Movement): CRUDResult =
 
     var 
         movement_plane_id = d.getValue(query = sql"SELECT id FROM MovementPlane WHERE name = ?;", movement.movement_plane)
         movement_category_id = d.getValue(query = sql"SELECT id FROM MovementCategory WHERE name = ?;", movement.movement_category)
         movement_type_id = d.getValue(query = sql"SELECT id FROM MovementType WHERE name = ?;", movement.movement_type)
         body_area_id = d.getValue(query = sql"SELECT id FROM BodyArea WHERE name = ?;", movement.body_area)
-        necessary_ids = @[movement_plane_id, movement_category_id, movement_type_id, body_area_id]
-    
-    # if there's entries for each of the movement's tables, then insert
-    if all(necessary_ids, not_blank):
+        
+        result = 
+            safely_use_sqlite:
+                (feedback_type: createSuccess, 
+                feedback_details: "success", 
+                db_id: d.insertID(sql"INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id) VALUES(?, ?, ?, ?, ?);", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id).int
+                )
 
-        var new_movement_id = d.insertID(sql"""INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id)
-                                                VALUES(?, ?, ?, ?, ?);""", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id)
-
-        return new_movement_id
-
-    else:
-        echo "movement input is not valid"
-        return 0
+    return result
 
 proc create_movement_combo*(d: DbConn, combo_name: string, session_order: int, movement_ids: varargs[int64]) =
 
