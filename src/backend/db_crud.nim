@@ -1,5 +1,8 @@
 import ../app_types, db_sqlite, sequtils
 
+type
+    DbResult
+
 
 # CREATE
 template enum_types_to_rows*(d: DbConn, input_enum: untyped) =    
@@ -8,7 +11,7 @@ template enum_types_to_rows*(d: DbConn, input_enum: untyped) =
         discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", movement.input_enum, movement.enumerated_state)
 
 
-proc is_not_blank(x: string): bool =
+proc not_blank(x: string): bool =
     return x != ""
 
 proc create_movement*(d: DbConn, movement: Movement): int64 =
@@ -21,7 +24,7 @@ proc create_movement*(d: DbConn, movement: Movement): int64 =
         necessary_ids = @[movement_plane_id, movement_category_id, movement_type_id, body_area_id]
     
     # if there's entries for each of the movement's tables, then insert
-    if all(necessary_ids, is_not_blank):
+    if all(necessary_ids, not_blank):
 
         var new_movement_id = d.insertID(sql"""INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id)
                                                 VALUES(?, ?, ?, ?, ?);""", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id)
@@ -36,7 +39,7 @@ proc create_movement_combo*(d: DbConn, combo_name: string, session_order: int, m
 
     var new_combo_id = d.insertID(sql"INSERT INTO MovementCombo (name, session_order) VALUES (?, ?)", combo_name, session_order)
 
-    if is_not_blank($new_combo_id):
+    if not_blank($new_combo_id):
 
         for m_id in movement_ids:
                 # create an assignment between Movement and MovementCombo
