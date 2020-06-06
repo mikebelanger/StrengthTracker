@@ -22,6 +22,10 @@ type
         movement_type*: MovementType
         movement_category*: MovementCategory
 
+    MovementComboAssignment* = object
+        name*: string
+        movement*: Movement
+
 
 proc to_movement*(input_json: JsonNode): Option[Movement] =
     if input_json.contains("name") and input_json["name"].getStr.len > 0:

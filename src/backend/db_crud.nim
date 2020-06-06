@@ -1,33 +1,22 @@
-import ../app_types, db_sqlite, sequtils
+import ../app_types, db_sqlite, json
 
 type
-    DbCRUDResultKind* = enum
-        createSuccess,
-        createAlreadyExists,
-        createInsufficientInput,
-        dbUndefinedError
+    DbCRUDResult* = object
+        success*: bool
+        rows*: seq[Row]
+        movements*: seq[Movement]
+        combo_assignments*: seq[MovementComboAssignment]
+        error*: string
 
-    DbCRUDResult* = tuple
-        feedback_type: DbCRUDResultKind
-        feedback_details: string
-        db_id: int
-
-template enter_into_db(db_interface_commands: untyped) =
+template safely_exec_db(db_interface_commands: untyped) =
     
     # safely execute SQL statements
     try:
-        return (
-                feedback_type: createSuccess, 
-                feedback_details: "success", 
-                db_id: db_interface_commands
-        )
+        db_interface_commands
     
-    except DbError as de:
-        return (feedback_type: createAlreadyExists, feedback_details: de.msg, db_id: 0)
-
-    except:
-        return (feedback_type: dbUndefinedError, feedback_details: getCurrentExceptionMsg(), db_id: 0)
-
+    except DbError:
+        return DbCRUDResult(success: false, rows: @[@[""]], error: getCurrentExceptionMsg())
+    
 
 proc not_blank(x: string): bool =
     return x != ""
@@ -42,22 +31,30 @@ proc create_movement*(d: DbConn, movement: Movement): DbCRUDResult =
         body_area_id = d.getValue(query = sql"SELECT id FROM BodyArea WHERE name = ?;", movement.body_area)
 
     # Enter into SQL safely, and return result from function
-    enter_into_db:
-        d.insertID(sql"INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id) VALUES(?, ?, ?, ?, ?);", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id).int
+    safely_exec_db:
+        d.exec(sql"""INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id) 
+                                            VALUES(?, ?, ?, ?, ?);""", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id)
+        return DbCRUDResult(success: true, 
+                            error: "")
 
+proc create_movement_combo*(d: DbConn, combo_name: string, session_order: int, movements: varargs[Movement]): DbCRUDResult =
 
-proc create_movement_combo*(d: DbConn, combo_name: string, session_order: int, movement_ids: varargs[int64]) =
+    safely_exec_db:
+        var new_combo_id = d.insertID(sql"INSERT INTO MovementCombo (name, session_order) VALUES (?, ?)", combo_name, session_order)
 
-    var new_combo_id = d.insertID(sql"INSERT INTO MovementCombo (name, session_order) VALUES (?, ?)", combo_name, session_order)
+        if not_blank($new_combo_id):
 
-    if not_blank($new_combo_id):
+            for movement in movements:
+                    # create an assignment between Movement and MovementCombo
+                    # so Movement <-> MovementCombo_Assignment <-> MovementCombo
+                
+                d.exec(sql"""INSERT INTO MovementCombo_Assignment (movement_id, movement_combo_id)
+                            SELECT Movement.id, ?
+                            FROM Movement WHERE Movement.name = ?""", new_combo_id, movement.name)
 
-        for m_id in movement_ids:
-                # create an assignment between Movement and MovementCombo
-                # so Movement <-> MovementCombo_Assignment <-> MovementCombo
-            
-            discard d.insertID(sql"""INSERT INTO MovementCombo_Assignment (movement_id, movement_combo_id) 
-                                    VALUES (?, ?)""", m_id, new_combo_id)
+                result.combo_assignments.add(
+                    MovementComboAssignment(name: combo_name, movement: movement)
+                )
 
 
 # READ
@@ -90,3 +87,27 @@ proc read_movement_by_movement_plane*(d: DbConn, movement_plane: MovementPlane) 
                                   BodyArea.id = Movement.body_area_id;""", 
                                   $movement_plane)
     echo rows
+
+if isMainModule:
+    let
+        db = open("./src/backend/v27.db", "", "", "")
+        b_split_squat = Movement(name: "Bulgarian Split Squat", 
+                                movement_plane: Frontal,
+                                movement_type: Unilateral,
+                                movement_category: Pull, 
+                                body_area: Upper)
+
+        pullup = Movement(name: "Pull-Up", 
+                        movement_plane: Vertical, 
+                        movement_type: Bilateral, 
+                        movement_category: Pull, 
+                        body_area: Upper)
+
+        movements = @[b_split_squat, pullup]
+
+    var x = db.create_movement_combo(combo_name = "third_combo", 
+                                    session_order = 2, 
+                                    movements)
+
+    echo x
+    echo %*x

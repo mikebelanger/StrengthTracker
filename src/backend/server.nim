@@ -10,16 +10,6 @@ import options
 
 let db = open("./src/backend/v27.db", "", "", "")
 
-proc generate_response(db_results: DbCRUDResult): JsonNode =
-  var content: string = 
-    case db_results.feedback_type:
-    of createSuccess: "successfully inserted movement into db!: " 
-    of createAlreadyExists: "db entry already exists!: "
-    of createInsufficientInput: "not enough input to add to database: "
-    of dbUndefinedError: "undefined error"
-
-  return %*{"content": content & db_results.feedback_details}
-
 routes:
 
   get "/welcome.json":
@@ -40,16 +30,7 @@ routes:
     if isSome(movement):
       create_result = db.create_movement(get(movement))
 
-      resp generate_response(create_result)
-
-    # otherwise, let the user know the movement isn't valid
-    else:
-
-      create_result = (feedback_type: createInsufficientInput,
-                      feedback_details: "likely a missing attribute to create movement object: " & user_input.getStr,
-                      db_id: 0)
-
-      resp generate_response(create_result)
+      resp %*create_result
 # READ
 # UPDATE
 # DELETE
