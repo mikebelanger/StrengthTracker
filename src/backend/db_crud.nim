@@ -12,16 +12,21 @@ type
         feedback_details: string
         db_id: int
 
-
-# CREATE
+# Templates/Helper functions
 template enum_types_to_rows*(d: DbConn, input_enum: untyped) =    
     # loop through each enumeration as a separate row entry to table_name
     for enumerated_state in input_enum.low .. input_enum.high:
         discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", movement.input_enum, movement.enumerated_state)
 
-template safely_use_sqlite(statements: untyped) =
+template enter_into_db(db_interface_commands: untyped) =
+    
+    # safely execute SQL statements
     try:
-        statements
+        return (
+                feedback_type: createSuccess, 
+                feedback_details: "success", 
+                db_id: db_interface_commands
+        )
     
     except DbError as de:
         return (feedback_type: createAlreadyExists, feedback_details: de.msg, db_id: 0)
@@ -33,6 +38,7 @@ template safely_use_sqlite(statements: untyped) =
 proc not_blank(x: string): bool =
     return x != ""
 
+# CREATE
 proc create_movement*(d: DbConn, movement: Movement): DbCRUDResult =
 
     var 
@@ -40,15 +46,11 @@ proc create_movement*(d: DbConn, movement: Movement): DbCRUDResult =
         movement_category_id = d.getValue(query = sql"SELECT id FROM MovementCategory WHERE name = ?;", movement.movement_category)
         movement_type_id = d.getValue(query = sql"SELECT id FROM MovementType WHERE name = ?;", movement.movement_type)
         body_area_id = d.getValue(query = sql"SELECT id FROM BodyArea WHERE name = ?;", movement.body_area)
-        
-        result = 
-            safely_use_sqlite:
-                (feedback_type: createSuccess, 
-                feedback_details: "success", 
-                db_id: d.insertID(sql"INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id) VALUES(?, ?, ?, ?, ?);", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id).int
-                )
 
-    return result
+    # Enter into SQL safely, and return result from function
+    enter_into_db:
+        d.insertID(sql"INSERT INTO movement (name, movement_plane_id, movement_type_id, body_area_id, movement_category_id) VALUES(?, ?, ?, ?, ?);", movement.name, movement_plane_id, movement_type_id, body_area_id, movement_category_id).int
+
 
 proc create_movement_combo*(d: DbConn, combo_name: string, session_order: int, movement_ids: varargs[int64]) =
 
