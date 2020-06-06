@@ -33,37 +33,23 @@ routes:
 
     var 
       create_result: CRUDResult
-      movement: Option[Movement]
       user_input = request.body.parseJson
-
-    # check to ensure movement has a name
-    if user_input.contains("name") and user_input["name"].getStr.len > 0:
-
       movement = user_input.to_movement
       
-      # if we have a valid, complete Movement object, try to enter into db
-      if isSome(movement):
-        create_result = db.create_movement(get(movement))
-
-        resp generate_response(create_result)
-
-      # otherwise, let the user know the movement isn't valid
-      else:
-
-        create_result = (feedback_type: createInsufficientInput,
-                        feedback_details: "likely a missing attribute to create movement object: " & user_input.getStr,
-                        db_id: 0)
-
-        resp generate_response(create_result)
-
-    # if user hasn't named the movement
-    else:
-      create_result = (feedback_type: createInsufficientInput,
-                      feedback_details: "Missing name",
-                      db_id: 0)
+    # if we have a valid, complete Movement object, try to enter into db
+    if isSome(movement):
+      create_result = db.create_movement(get(movement))
 
       resp generate_response(create_result)
 
+    # otherwise, let the user know the movement isn't valid
+    else:
+
+      create_result = (feedback_type: createInsufficientInput,
+                      feedback_details: "likely a missing attribute to create movement object: " & user_input.getStr,
+                      db_id: 0)
+
+      resp generate_response(create_result)
 # READ
 # UPDATE
 # DELETE
