@@ -1,14 +1,14 @@
 import ../app_types, db_sqlite, sequtils
 
 type
-    CRUDResultKind* = enum
+    DbCRUDResultKind* = enum
         createSuccess,
         createAlreadyExists,
         createInsufficientInput,
         dbUndefinedError
 
-    CRUDResult* = tuple
-        feedback_type: CRUDResultKind
+    DbCRUDResult* = tuple
+        feedback_type: DbCRUDResultKind
         feedback_details: string
         db_id: int
 
@@ -33,7 +33,7 @@ template safely_use_sqlite(statements: untyped) =
 proc not_blank(x: string): bool =
     return x != ""
 
-proc create_movement*(d: DbConn, movement: Movement): CRUDResult =
+proc create_movement*(d: DbConn, movement: Movement): DbCRUDResult =
 
     var 
         movement_plane_id = d.getValue(query = sql"SELECT id FROM MovementPlane WHERE name = ?;", movement.movement_plane)

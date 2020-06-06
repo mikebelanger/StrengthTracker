@@ -10,7 +10,7 @@ import options
 
 let db = open("./src/backend/v27.db", "", "", "")
 
-proc generate_response(db_results: CRUDResult): JsonNode =
+proc generate_response(db_results: DbCRUDResult): JsonNode =
   var content: string = 
     case db_results.feedback_type:
     of createSuccess: "successfully inserted movement into db!: " 
@@ -32,7 +32,7 @@ routes:
   post "/create_movement.json":
 
     var 
-      create_result: CRUDResult
+      create_result: DbCRUDResult
       user_input = request.body.parseJson
       movement = user_input.to_movement
       
