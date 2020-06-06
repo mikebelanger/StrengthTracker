@@ -2,6 +2,15 @@ import times, db_sqlite
 import ../app_types
 import db_crud
 
+# Templates/Helper functions
+
+# quick way of populating database with enum types
+template enum_types_to_rows*(d: DbConn, input_enum: untyped) =    
+    # loop through each enumeration as a separate row entry to table_name
+    for enumerated_state in input_enum.low .. input_enum.high:
+        discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", $input_enum, $enumerated_state)
+
+
 let db = open("./src/backend/v27.db", "", "", "")
 
 db.exec(sql"""CREATE TABLE IF NOT EXISTS ? (
@@ -80,54 +89,64 @@ var
     # populate datatbase with movement metadata
     # Strength A
 
-    b_split_squat_id = db.create_movement(name = "Bulgarian Split Squat", 
-                                            movement_plane = Frontal, 
-                                            movement_type = Unilateral,
-                                            movement_category = Pull, 
-                                            body_area = Upper)
+    split_squat = db.create_movement(Movement(
+                                            name: "Bulgarian Split Squat", 
+                                            movement_plane: Frontal, 
+                                            movement_type: Unilateral,
+                                            movement_category: Pull, 
+                                            body_area: Upper)
+    )
 
-    pullup_id = db.create_movement(name = "Pull-Up", 
-                                    movement_plane = Vertical, 
-                                    movement_type = Bilateral, 
-                                    movement_category = Pull, 
-                                    body_area = Upper)
+    pullup = db.create_movement(Movement(
+                                    name: "Pull-Up", 
+                                    movement_plane: Vertical, 
+                                    movement_type: Bilateral, 
+                                    movement_category: Pull, 
+                                    body_area: Upper)
+    )
 
 
     # Strength B
-    ring_dip_id = db.create_movement(name ="Ring Dips", 
-                                    movement_plane = Vertical, 
-                                    movement_type = Bilateral,
-                                    body_area = Upper,
-                                    movement_category = Push
-                                    )
+    ring_dip = db.create_movement(Movement(
+                                    name: "Ring Dips", 
+                                    movement_plane: Vertical, 
+                                    movement_type: Bilateral,
+                                    body_area: Upper,
+                                    movement_category: Push)
+    )
 
-    slrdl_id = db.create_movement(name = "Single Leg Romainian Deadlift",
-                                movement_category = Hinge,
-                                movement_plane = Frontal,
-                                movement_type = Unilateral,
-                                body_area = Lower
+    slrdl = db.create_movement(Movement(
+                                name: "Single Leg Romainian Deadlift",
+                                movement_category: Hinge,
+                                movement_plane: Frontal,
+                                movement_type: Unilateral,
+                                body_area: Lower
                                 )
+    )
 
-    scap_pull_id = db.create_movement(name = "Scapular Pull",
-                                    movement_plane = Frontal,
-                                    movement_type = Unilateral,
-                                    body_area = Lower,
-                                    movement_category = Pull)
+    scap_pull = db.create_movement(Movement(
+                                    name: "Scapular Pull",
+                                    movement_plane: Frontal,
+                                    movement_type: Unilateral,
+                                    body_area: Lower,
+                                    movement_category: Pull
+                                    )
+    )
 
 
-db.create_movement_combo(combo_name = "A: Pull-Up + B.Split Squat",
-                    session_order = 1,
-                    movement_ids = pullup_id, b_split_squat_id)
+# db.create_movement_combo(combo_name = "A: Pull-Up + B.Split Squat",
+#                     session_order = 1,
+#                     movement_ids = pullup_id, b_split_squat_id)
 
-db.create_movement_combo(combo_name = "B: Ring Dip + SLRDL", 
-                    session_order = 2,
-                    movement_ids = ring_dip_id, slrdl_id)
+# db.create_movement_combo(combo_name = "B: Ring Dip + SLRDL", 
+#                     session_order = 2,
+#                     movement_ids = ring_dip_id, slrdl_id)
 
-db.create_movement_combo(combo_name = "A: Scap-pull + B.Split Squat",
-                    session_order = 1,
-                    movement_ids = scap_pull_id, b_split_squat_id)
+# db.create_movement_combo(combo_name = "A: Scap-pull + B.Split Squat",
+#                     session_order = 1,
+#                     movement_ids = scap_pull_id, b_split_squat_id)
 
-db.read_movement_combo_by_movement(movement_name = "Bulgarian Split Squat")
+# db.read_movement_combo_by_movement(movement_name = "Bulgarian Split Squat")
 
 db.read_movement_by_category(movement_category = Pull)
 db.read_movement_by_movement_plane(movement_plane = Vertical)

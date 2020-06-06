@@ -12,12 +12,6 @@ type
         feedback_details: string
         db_id: int
 
-# Templates/Helper functions
-template enum_types_to_rows*(d: DbConn, input_enum: untyped) =    
-    # loop through each enumeration as a separate row entry to table_name
-    for enumerated_state in input_enum.low .. input_enum.high:
-        discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", movement.input_enum, movement.enumerated_state)
-
 template enter_into_db(db_interface_commands: untyped) =
     
     # safely execute SQL statements
