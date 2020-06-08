@@ -5,43 +5,43 @@ import db_crud
 # Templates/Helper functions
 
 # quick way of populating database with enum types
-template enum_types_to_rows*(d: DbConn, input_enum: untyped) =    
+template enum_types_to_rows*(d: DbConn, input_enum: untyped, input_enum_name: string) =    
     # loop through each enumeration as a separate row entry to table_name
     for enumerated_state in input_enum.low .. input_enum.high:
-        discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", $input_enum, $enumerated_state)
+        discard d.insertID(sql"INSERT INTO ? (name) VALUES(?)", $input_enum_name, $enumerated_state)
 
 
-let db = open("./src/backend/v27.db", "", "", "")
+let db = open("./src/backend/v29.db", "", "", "")
 
 db.exec(sql"""CREATE TABLE IF NOT EXISTS ? (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE
     );
-    """, $MovementPlane
+    """, "movement_plane"
     )
 
 db.exec(sql"""CREATE TABLE IF NOT EXISTS ? (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE
     );
-    """, $BodyArea
+    """, "body_area"
     )
 
 db.exec(sql"""CREATE TABLE IF NOT EXISTS ? (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE
     );
-    """, $MovementType
+    """, "movement_type"
     )
 
 db.exec(sql"""CREATE TABLE IF NOT EXISTS ? (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE
     );
-    """, $MovementCategory
+    """, "movement_category"
     )
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS Movement (
+db.exec(sql"""CREATE TABLE IF NOT EXISTS movement (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE,
     body_area_id INTEGER,
@@ -52,14 +52,14 @@ db.exec(sql"""CREATE TABLE IF NOT EXISTS Movement (
     );"""
     )
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS MovementCombo  (
+db.exec(sql"""CREATE TABLE IF NOT EXISTS movement_combo  (
     id INTEGER PRIMARY KEY,
     name TEXT UNIQUE,
     session_order INTEGER
     );"""
     )
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS MovementSet (
+db.exec(sql"""CREATE TABLE IF NOT EXISTS movement_set (
     id INTEGER PRIMARY KEY,
     movement_id INTEGER,
     reps INTEGER,
@@ -69,7 +69,7 @@ db.exec(sql"""CREATE TABLE IF NOT EXISTS MovementSet (
     );"""
     )
 
-db.exec(sql"""CREATE TABLE IF NOT EXISTS MovementCombo_Assignment (
+db.exec(sql"""CREATE TABLE IF NOT EXISTS movement_combo_assignment (
     id INTEGER PRIMARY KEY,
     movement_id INTEGER,
     movement_combo_id INTEGER
@@ -79,10 +79,10 @@ db.exec(sql"""CREATE TABLE IF NOT EXISTS MovementCombo_Assignment (
 
 
 # add all enumerated types
-db.enum_types_to_rows(MovementPlane)
-db.enum_types_to_rows(BodyArea)
-db.enum_types_to_rows(MovementType)
-db.enum_types_to_rows(MovementCategory)
+db.enum_types_to_rows(MovementPlane, "movement_plane")
+db.enum_types_to_rows(BodyArea, "body_area")
+db.enum_types_to_rows(MovementType, "movement_type")
+db.enum_types_to_rows(MovementCategory, "movement_category")
 
 
 var

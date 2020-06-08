@@ -79,3 +79,9 @@ if isMainModule:
 
     echo sample.isNone
     echo another_sample.isSome
+
+    var m = Movement()
+
+    for key, val in fieldPairs(m):
+        echo key, val
+
