@@ -68,7 +68,7 @@ proc read_movement_by_category*(d: DbConn, movement_category: MovementCategory) 
 
     var rows = d.getAllRows(sql"""SELECT movement.name, movement_category.name, movement_type.name, movement_plane.name, body_area.name
                                   FROM movement, movement_category, movement_type, movement_plane, body_area WHERE
-                                  Movement.movement_category_id = movement_category.id AND
+                                  movement.movement_category_id = movement_category.id AND
                                   movement_category.name = ? AND
                                   movement_type.id = movement.movement_type_id AND
                                   movement_plane.id = movement.movement_plane_id AND
@@ -90,7 +90,7 @@ proc read_movement_by_movement_plane*(d: DbConn, movement_plane: MovementPlane) 
 
 if isMainModule:
     let
-        db = open("./src/backend/v27.db", "", "", "")
+        db = open("./src/backend/v29.db", "", "", "")
         b_split_squat = Movement(name: "Bulgarian Split Squat", 
                                 movement_plane: Frontal,
                                 movement_type: Unilateral,
