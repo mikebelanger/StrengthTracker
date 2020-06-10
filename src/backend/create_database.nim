@@ -51,6 +51,7 @@ let
         Column().foreign("body_area_id").reference("id").on("body").onDelete(SET_NULL),
         Column().foreign("movement_type_id").reference("id").on("body").onDelete(SET_NULL),
         Column().foreign("movement_category_id").reference("id").on("movement_category").onDelete(SET_NULL),
+        Column().foreign("movement_plane_id").reference("id").on("movement_plane").onDelete(SET_NULL)
     ]
 
     movement_combo = [
@@ -83,4 +84,5 @@ if isMainModule:
     add_enum_types_to_table(table_name = "body_area", input_enum = BodyArea)
     add_enum_types_to_table(table_name = "movement_type", input_enum = MovementType)
     add_enum_types_to_table(table_name = "movement_category", input_enum = MovementCategory)
+    add_enum_types_to_table(table_name = "movement_plane", input_enum = MovementPlane)
 
