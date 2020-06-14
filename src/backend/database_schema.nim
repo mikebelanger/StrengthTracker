@@ -2,20 +2,7 @@ import times, db_sqlite
 import json
 import allographer/schema_builder
 import allographer/query_builder
-
-type
-
-    MovementPlane* = enum
-        Horizontal, Vertical, Lateral, Frontal
-    
-    BodyArea* = enum
-        Upper, Lower
-    
-    MovementType* = enum
-        Unilateral, Bilateral
-
-    MovementCategory* = enum
-        Push, Pull, Squat, Hinge
+import ../app_types
 
 # quick way of populating database with enum types
 template add_enum_types_to_table*(table_name: string, input_enum: untyped) =    
@@ -25,27 +12,27 @@ template add_enum_types_to_table*(table_name: string, input_enum: untyped) =
 
 
 let
-    movement_plane = [
+    movement_plane_table = [
         Column().increments("id"),
         Column().string("name").unique()
     ]
 
-    body_area = [
+    body_area_table = [
         Column().increments("id"),
         Column().string("name").unique()
     ]
 
-    movement_type = [
+    movement_type_table = [
         Column().increments("id"),
         Column().string("name").unique()
     ]
 
-    movement_category = [
+    movement_category_table = [
         Column().increments("id"),
         Column().string("name").unique()
     ]
 
-    movement* = [
+    movement_table* = [
         Column().increments("id"),
         Column().string("name").unique(),
         Column().foreign("body_area_id").reference("id").on("body").onDelete(SET_NULL),
@@ -54,13 +41,13 @@ let
         Column().foreign("movement_plane_id").reference("id").on("movement_plane").onDelete(SET_NULL)
     ]
 
-    movement_combo = [
+    movement_combo_table = [
         Column().increments("id"),
         Column().string("name").unique(),
         Column().foreign("movement_id").reference("id").on("movement").onDelete(SET_NULL)
     ]
 
-    movement_combo_assignment = [
+    movement_combo_assignment_table = [
         Column().increments("id"),
         Column().foreign("movement_id").reference("id").on("movement_combo").onDelete(SET_NULL),
         Column().foreign("movement_combo_id").reference("id").on("movement_combo").onDelete(SET_NULL)
@@ -70,13 +57,13 @@ if isMainModule:
 
     # now add to db
     schema([
-        table("movement_plane", movement_plane),
-        table("body_area", body_area),
-        table("movement_type", movement_type),
-        table("movement_category", movement_category),
-        table("movement", movement),
-        table("movement_combo", movement_combo),
-        table("movement_combo_assignment", movement_combo_assignment)
+        table("movement_plane", movement_plane_table),
+        table("body_area", body_area_table),
+        table("movement_type", movement_type_table),
+        table("movement_category", movement_category_table),
+        table("movement", movement_table),
+        table("movement_combo", movement_combo_table),
+        table("movement_combo_assignment", movement_combo_assignment_table)
     ])
 
 

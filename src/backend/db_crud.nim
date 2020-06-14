@@ -1,57 +1,60 @@
 import allographer/[query_builder, schema_builder]
 import json
-import schema_validation
-import create_database
 import strutils
+import ../app_types
 
 # HELPERS
-proc get_foreign_keys(db_columns: openArray[Column], input_json, return_json: JsonNode, id_search_term = "_id"): JsonNode =
-    
-    for column in db_columns:
+proc get_foreign_key_for(table_name: string, named: string): JsonNode =
 
-        if column.name.contains(id_search_term):
-            
-            let
-                real_name = column.name.replace(id_search_term, "")
-                thing = RDB().table(real_name)
-                             .select("id")
-                             .where("name", "=", input_json{real_name}.getStr).get()
+    var thing = RDB().table(table_name)
+                     .select("id")
+                     .where("name", "=", named)
+                     .get()
 
-            if thing.len == 1:
-                var id = thing[0]{"id"}
-                return_json.add(key = column.name, val = %id)
+    if thing.len == 1:
+        var id = thing[0]{"id"}
+        return %*id
+    else:
+        return %*""
 
-    return return_json
+proc get_foreign_keys(movement_params: Movement): JsonNode =
 
-# CREATE
-proc create_movement*(input_json: JsonNode) =
+    result = %*{
+        "name": movement_params.name,
+        "movement_plane_id": get_foreign_key_for(table_name = "movement_plane", 
+                                                  named = $movement_params.movement_plane),
+        "body_area_id": get_foreign_key_for(table_name = "body_area",
+                                            named = $movement_params.body_area),
+        "movement_type_id": get_foreign_key_for(table_name = "movement_type",
+                                                named = $movement_params.movement_type),
+        "movement_category_id": get_foreign_key_for(table_name = "movement_category",
+                                                    named = $movement_params.movement_category)
+    }
 
-    if input_json.is_a_valid(movement):
+# # CREATE
+proc db_insert*(input_movement: Movement): CRUDObject =
 
-        try:
+    let to_insert = input_movement.get_foreign_keys()
 
-            var to_insert = get_foreign_keys(db_columns = movement,
-                                            input_json = input_json,
-                                            return_json = %*{ "name" : input_json{"name"}})
-                
+    RDB().table("movement").insert(to_insert)
 
-            echo to_insert
-
-            RDB().table("movement").insert(to_insert)
-
-        except:
-            echo getCurrentExceptionMsg()
+    return CRUDObject(status: Complete)
 
 
 if isMainModule:
     
-    let some_json = parseJson("""{
-        "name": "Double KB Overhead press",
-        "movement_plane": "Vertical",
-        "movement_category": "Push",
-        "body_area": "Toes",
-        "movement_type": "Bilateral"
-    }
-    """)
+    let 
+        some_json = parseJson("""{
+            "name": "Barbell OH Press",
+            "movement_plane": "Vertical",
+            "movement_category": "Push",
+            "body_area": "Lower",
+            "movement_type": "Bilateral",
+            "status": "Incomplete",
+            "error": ""
+        }
+        """)
 
-    create_movement(some_json)
+        mv = some_json.to(Movement)
+    
+    echo db_insert(mv)
