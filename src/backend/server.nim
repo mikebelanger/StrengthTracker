@@ -5,7 +5,6 @@ import jester
 import json
 import db_crud
 import ../app_types
-import db_sqlite
 
 template respond_with_json(stmts: untyped) =
   try:
@@ -13,7 +12,6 @@ template respond_with_json(stmts: untyped) =
     resp %*crud
   except:
     resp %*CRUDOBject(status: Error, error: getCurrentExceptionMsg())
-
 
 routes:
 
@@ -30,7 +28,6 @@ routes:
       request.body.parseJson
                   .to(Movement)
                   .db_insert
-    
 
 # READ
 # UPDATE

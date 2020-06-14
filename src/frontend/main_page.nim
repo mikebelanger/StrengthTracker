@@ -10,8 +10,6 @@ var page_loaded: bool
 var app_state: cstring
 var return_button: cstring = "click here for more stuff"
 
-# proc validateMovementEntry()
-
 proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
     return json_node[key].getStr()
@@ -22,8 +20,10 @@ proc getOptionValue(input_node_id: cstring): string =
         if this_option.selected:
             return $this_option.text
 
-proc submitOptionsValue(route: cstring, name_id: cstring, option_box_ids: seq[string]) =
+proc validate_and_submit(submit_type: JsonSubmit, name_id: cstring, option_box_ids: seq[string]) =
     var submit_options = parseJson("{}")
+    submit_options.add(key = $"status", val = newJString($"Incomplete"))
+    submit_options.add(key = $"error", val = newJString($""))
 
     # Get name of movement
     var name_elem = document.getElementById(name_id)
@@ -34,12 +34,16 @@ proc submitOptionsValue(route: cstring, name_id: cstring, option_box_ids: seq[st
     for option_id in option_box_ids:
         submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
 
-    echo submit_options.getStr()
-    echo $submit_options
+    case submit_type:
+        of CreateMovement:
+            try:
+                discard submit_options.to(Movement)
+            except:
+                echo getCurrentExceptionMsg()
 
-    echo submit_options
-    ajaxPost(url = route, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
-        echo ($status, $resp))
+            ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
+                echo ($status, $resp))
+
 
 proc render(): VNode =
 
@@ -101,7 +105,7 @@ proc render(): VNode =
                                         text $movement_category
 
                     a(class = button_class, onclick = () => 
-                        submitOptionsValue(route = "/create_movement.json", name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
+                        validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
                         text "Click to submit"
 
 

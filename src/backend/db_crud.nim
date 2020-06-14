@@ -1,4 +1,4 @@
-import allographer/[query_builder, schema_builder]
+import allographer/query_builder
 import json
 import strutils
 import ../app_types
