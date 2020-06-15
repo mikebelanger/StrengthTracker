@@ -3,12 +3,24 @@ import karax/[kdom, kajax, errors]
 import json, sugar
 import ../app_types
 
-const span_class = "bg-green black-80 pt1"
-const button_class = "f6 link dim br3 ph3 pv2 mb2 dib white bg-purple"
+const 
+    span_class = "bg-green black-80 pt1"
+    button_class = "f6 link dim br3 ph3 pv2 mb2 dib white bg-purple"
 
-var page_loaded: bool
-var app_state: cstring
-var return_button: cstring = "click here for more stuff"
+var 
+    page_loaded: bool
+    app_state: cstring
+    return_button: cstring = "click here for more stuff"
+    movement_left_blank_error = ""
+
+proc validateNotEmpty(field: kstring): proc () =
+    result = proc () =
+        let vnode = getVNodeById(field)
+        echo "found vnode: ", vnode
+        if vnode.text.isNil or vnode.text == "":
+            errors.setError(field, field & " must not be empty")
+        else:
+            errors.setError(field, "")
 
 proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
@@ -20,30 +32,34 @@ proc getOptionValue(input_node_id: cstring): string =
         if this_option.selected:
             return $this_option.text
 
-proc validate_and_submit(submit_type: JsonSubmit, name_id: cstring, option_box_ids: seq[string]) =
-    var submit_options = parseJson("{}")
-    submit_options.add(key = $"status", val = newJString($"Incomplete"))
-    submit_options.add(key = $"error", val = newJString($""))
-
+proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_ids: seq[string]) =
     # Get name of movement
     var name_elem = document.getElementById(name_id)
     var name = name_elem.value
 
-    submit_options.add(key = $"name", val = newJString($name))
+    if name.isNil or name == "":
+        movement_left_blank_error = "Name can't be blank"
+        echo "name is blank"
 
-    for option_id in option_box_ids:
-        submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
+    else:
 
-    case submit_type:
-        of CreateMovement:
-            try:
-                discard submit_options.to(Movement)
-            except:
-                echo getCurrentExceptionMsg()
+        var submit_options = parseJson("{}")
+        submit_options.add(key = $"status", val = newJString($"Incomplete"))
+        submit_options.add(key = $"error", val = newJString($""))
+        submit_options.add(key = $"name", val = newJString($name))
 
-            ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
-                echo ($status, $resp))
+        for option_id in option_box_ids:
+            submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
 
+        case submit_type:
+            of CreateMovement:
+                try:
+                    discard submit_options.to(Movement)
+                except:
+                    echo getCurrentExceptionMsg()
+
+                ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
+                    echo ($status, $resp))
 
 proc render(): VNode =
 
@@ -73,12 +89,15 @@ proc render(): VNode =
                     text "Add a new movement"
                     br()
                     span(class = span_class):
-                        input(id = "movement_name", placeholder = "Enter movement")
+                        input(id = "movement_name", placeholder = "Enter movement", onchange = validateNotEmpty("movement_name"))
+                        tdiv(id = "movement_error"):
+                            text movement_left_blank_error
                     br()
 
                     span(class = span_class):
                         label(`for` = "movement_plane", class = span_class, id = "movement_plane_container"):
                             select(id = "movement_plane"):
+                                option(value = "Select Movement Plane")
                                 for movement_plane in MovementPlane.low .. MovementPlane.high:
                                     option(value = ord(movement_plane).toCstr):
                                         text $movement_plane
@@ -86,6 +105,7 @@ proc render(): VNode =
                     span(class = span_class):
                         label(`for` = "body_area", class = span_class, id = "body_area_container"):
                             select(id = "body_area"):
+                                option(value = "Select Body Area")
                                 for body_area in BodyArea.low .. BodyArea.high:
                                     option(value = ord(body_area).toCstr):
                                         text $body_area
@@ -93,6 +113,7 @@ proc render(): VNode =
                     span(class = span_class):
                         label(`for` = "movement_type", class = span_class, id = "movement_type_container"):
                             select(id = "movement_type"):
+                                option(value = "Select Movement Type")
                                 for movement_type in MovementType.low .. MovementType.high:
                                     option(value = ord(movement_type).toCstr):
                                         text $movement_type
@@ -100,6 +121,7 @@ proc render(): VNode =
                     span(class = span_class):
                         label(`for` = "movement_category", class = span_class, id = "movement_category_container"):
                             select(id = "movement_category"):
+                                option(value = "Select Movement Category")
                                 for movement_category in MovementCategory.low .. MovementCategory.high:
                                     option(value = ord(movement_category).toCstr):
                                         text $movement_category
@@ -107,7 +129,6 @@ proc render(): VNode =
                     a(class = button_class, onclick = () => 
                         validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
                         text "Click to submit"
-
 
 
     else:
