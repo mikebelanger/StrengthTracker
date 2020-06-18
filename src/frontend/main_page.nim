@@ -1,7 +1,11 @@
 include karax/prelude
-import karax/[kdom, kajax, errors]
+import karax/[kdom, kajax]
 import json, sugar
 import ../app_types
+from dom import setTimeout
+
+type
+    Seconds = distinct int
 
 const 
     span_class = "bg-green black-80 pt1"
@@ -11,16 +15,10 @@ var
     page_loaded: bool
     app_state: cstring
     return_button: cstring = "click here for more stuff"
-    movement_left_blank_error = ""
+    movement_left_blank = false
 
-proc validateNotEmpty(field: kstring): proc () =
-    result = proc () =
-        let vnode = getVNodeById(field)
-        echo "found vnode: ", vnode
-        if vnode.text.isNil or vnode.text == "":
-            errors.setError(field, field & " must not be empty")
-        else:
-            errors.setError(field, "")
+# template show_for(t: Seconds, stmts: untyped) = 
+#     window.setTimeout(code = stmts, pause: t)
 
 proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
@@ -37,11 +35,13 @@ proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_i
     var name_elem = document.getElementById(name_id)
     var name = name_elem.value
 
-    if name.isNil or name == "":
-        movement_left_blank_error = "Name can't be blank"
-        echo "name is blank"
+    if name.isNil or name == "": 
+
+        movement_left_blank = true
 
     else:
+
+        movement_left_blank = false
 
         var submit_options = parseJson("{}")
         submit_options.add(key = $"status", val = newJString($"Incomplete"))
@@ -89,9 +89,13 @@ proc render(): VNode =
                     text "Add a new movement"
                     br()
                     span(class = span_class):
-                        input(id = "movement_name", placeholder = "Enter movement", onchange = validateNotEmpty("movement_name"))
+                        input(id = "movement_name", placeholder = "Enter movement")
                         tdiv(id = "movement_error"):
-                            text movement_left_blank_error
+                            if movement_left_blank:
+                                text "Movement can't be left blank"
+                            else:
+                                text ""
+
                     br()
 
                     span(class = span_class):
