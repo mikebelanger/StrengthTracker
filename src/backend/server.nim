@@ -6,7 +6,7 @@ import json
 import db_crud
 import ../app_types
 
-template render_json_after(stmts: untyped) =
+template render_json_for(stmts: untyped) =
   try:
     var crud = stmts
     resp %*crud
@@ -24,7 +24,7 @@ routes:
 # CREATE
   post "/create_movement.json":
     
-    render_json_after:
+    render_json_for:
       request.body.parseJson
                   .to(Movement)
                   .db_insert
