@@ -2,20 +2,15 @@ include karax/prelude
 import karax/[kdom, kajax]
 import json, sugar
 import ../app_types
-from dom import setTimeout
+import components
 
-type
-    Seconds = distinct int
-
-const 
-    span_class = "bg-green black-80 pt1"
-    button_class = "f6 link dim br3 ph3 pv2 mb2 dib white bg-purple"
-
+type PageMode = enum Welcome, Workout
 var 
     page_loaded: bool
     app_state: cstring
     return_button: cstring = "click here for more stuff"
     movement_left_blank = false
+    pageMode = Welcome
 
 # template show_for(t: Seconds, stmts: untyped) = 
 #     window.setTimeout(code = stmts, pause: t)
@@ -61,79 +56,103 @@ proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_i
                 ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
                     echo ($status, $resp))
 
+proc changeModeTo(p: PageMode) =
+    pageMode = p
+
 proc render(): VNode =
 
-    if window.location.pathname == "/index.html" or window.location.pathname == "/": 
-
+    if window.location.pathname == "/index.html" or window.location.pathname == "":
         result = buildHtml():
+                    tdiv:
+                        createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Currently not logged in.")
 
-            if not page_loaded:
-                ajaxGet("/welcome.json", @[], proc (s: int, r: cstring) = 
-                    app_state = getJsonValue(r, "content")
-                    page_loaded = true
-                )
+                        case pageMode:
+                            of Welcome:
+                                
+                                createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome!")
+                            
+                                a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => changeModeTo(Workout)):
+                                    text "Start the workout"
+
+                            of Workout:
+                                text "add workout stuff"
+
+        return result
+
+
+        # result = buildHtml():
+
+        #     if not page_loaded:
+        #         ajaxGet("/welcome.json", @[], proc (s: int, r: cstring) = 
+        #             app_state = getJsonValue(r, "content")
+        #             page_loaded = true
+        #         )
             
-            tdiv:
-                span(class = span_class):
-                    h1(class = span_class):
-                        text app_state
+        #     tdiv:
+        #         span(class = span_class):
+        #             h1(class = span_class):
+        #                 text app_state
 
-                a(class = button_class, onclick = () =>
-                    ajaxGet("/some_other_val.json", @[], proc (s: int, r: cstring) = 
-                        return_button = getJsonValue(r, "content"))):
-                        text return_button
+        #         a(class = button_class, onclick = () =>
+        #             ajaxGet("/some_other_val.json", @[], proc (s: int, r: cstring) = 
+        #                 return_button = getJsonValue(r, "content"))):
+        #                 text return_button
 
-                # TODO: make this a proc, or possibly template.  Couldn't do it because
-                # the compiler didn't recognize `option` inside a template
-                h3:
-                    text "Add a new movement"
-                    br()
-                    span(class = span_class):
-                        input(id = "movement_name", placeholder = "Enter movement")
-                        tdiv(id = "movement_error"):
-                            if movement_left_blank:
-                                text "Movement can't be left blank"
-                            else:
-                                text ""
+        #         # TODO: make this a proc, or possibly template.  Couldn't do it because
+        #         # the compiler didn't recognize `option` inside a template
+        #         h3:
+        #             text "Add a new movement"
+        #             br()
+        #             span(class = span_class):
+        #                 input(id = "movement_name", placeholder = "Enter movement")
+        #                 tdiv(id = "movement_error"):
+        #                     if movement_left_blank:
+        #                         text "Movement can't be left blank"
+        #                     else:
+        #                         text ""
 
-                    br()
+        #             br()
 
-                    span(class = span_class):
-                        label(`for` = "movement_plane", class = span_class, id = "movement_plane_container"):
-                            select(id = "movement_plane"):
-                                option(value = "Select Movement Plane")
-                                for movement_plane in MovementPlane.low .. MovementPlane.high:
-                                    option(value = ord(movement_plane).toCstr):
-                                        text $movement_plane
+        #             span(class = span_class):
+        #                 label(`for` = "movement_plane", class = span_class, id = "movement_plane_container"):
+        #                     select(id = "movement_plane"):
+        #                         option(value = "Select Movement Plane")
+        #                         for movement_plane in MovementPlane.low .. MovementPlane.high:
+        #                             option(value = ord(movement_plane).toCstr):
+        #                                 text $movement_plane
 
-                    span(class = span_class):
-                        label(`for` = "body_area", class = span_class, id = "body_area_container"):
-                            select(id = "body_area"):
-                                option(value = "Select Body Area")
-                                for body_area in BodyArea.low .. BodyArea.high:
-                                    option(value = ord(body_area).toCstr):
-                                        text $body_area
+        #             span(class = span_class):
+        #                 label(`for` = "body_area", class = span_class, id = "body_area_container"):
+        #                     select(id = "body_area"):
+        #                         option(value = "Select Body Area")
+        #                         for body_area in BodyArea.low .. BodyArea.high:
+        #                             option(value = ord(body_area).toCstr):
+        #                                 text $body_area
 
-                    span(class = span_class):
-                        label(`for` = "movement_type", class = span_class, id = "movement_type_container"):
-                            select(id = "movement_type"):
-                                option(value = "Select Movement Type")
-                                for movement_type in MovementType.low .. MovementType.high:
-                                    option(value = ord(movement_type).toCstr):
-                                        text $movement_type
+        #             span(class = span_class):
+        #                 label(`for` = "movement_type", class = span_class, id = "movement_type_container"):
+        #                     select(id = "movement_type"):
+        #                         option(value = "Select Movement Type")
+        #                         for movement_type in MovementType.low .. MovementType.high:
+        #                             option(value = ord(movement_type).toCstr):
+        #                                 text $movement_type
 
-                    span(class = span_class):
-                        label(`for` = "movement_category", class = span_class, id = "movement_category_container"):
-                            select(id = "movement_category"):
-                                option(value = "Select Movement Category")
-                                for movement_category in MovementCategory.low .. MovementCategory.high:
-                                    option(value = ord(movement_category).toCstr):
-                                        text $movement_category
+        #             span(class = span_class):
+        #                 label(`for` = "movement_category", class = span_class, id = "movement_category_container"):
+        #                     select(id = "movement_category"):
+        #                         option(value = "Select Movement Category")
+        #                         for movement_category in MovementCategory.low .. MovementCategory.high:
+        #                             option(value = ord(movement_category).toCstr):
+        #                                 text $movement_category
 
-                    a(class = button_class, onclick = () => 
-                        validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
-                        text "Click to submit"
+        #             a(class = button_class, onclick = () => 
+        #                 validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
+        #                 text "Click to submit"
 
+    elif window.location.pathname == "/workout.html":
+        result = createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Your currently doing")
+
+        return result
 
     else:
         result = buildHtml():
