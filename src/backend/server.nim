@@ -28,7 +28,13 @@ routes:
       request.body.parseJson
                   .to(Movement)
                   .db_insert
+  
+  post "/create_movement_combo.json":
 
+    render_json_for:
+      request.body.parseJson
+                  .to(MovementCombo)
+                  .db_insert
 # READ
 # UPDATE
 # DELETE

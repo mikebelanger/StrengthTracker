@@ -1,6 +1,5 @@
 import allographer/query_builder
 import json
-import strutils
 import ../app_types
 
 # HELPERS
@@ -35,26 +34,57 @@ proc get_foreign_keys(movement_params: Movement): JsonNode =
 proc db_insert*(input_movement: Movement): CRUDObject =
 
     let to_insert = input_movement.get_foreign_keys()
-
     RDB().table("movement").insert(to_insert)
+
+    return CRUDObject(status: Complete)
+
+proc db_insert*(movement_combo: MovementCombo): CRUDObject =
+    
+    # first create the movement in the database
+    let
+        to_insert = %*{
+            "name": movement_combo.name
+        }
+        combo_id = RDB().table("movement_combo").insertID(to_insert)
+
+    echo $combo_id
+
+    # now loop through each movement and add it, if it exists
+    for movement in movement_combo.movements:
+        var movement_id = get_foreign_key_for(table_name = "movement", named = movement)
+
+        if movement_id.getInt > 0:
+
+            # create movement assignment 
+            RDB().table("movement_combo_assignment").insert(%*{
+                "movement_id": movement_id,
+                "movement_combo_id": combo_id    
+            })
+        
+        else:
+            return CRUDObject(status: Error, error: movement & " does not exist.")
+
 
     return CRUDObject(status: Complete)
 
 
 if isMainModule:
     
-    let 
-        some_json = parseJson("""{
-            "name": "Barbell OH Press",
-            "movement_plane": "Vertical",
-            "movement_category": "Push",
-            "body_area": "Lower",
-            "movement_type": "Bilateral",
-            "status": "Incomplete",
-            "error": ""
-        }
-        """)
+    # let 
+    #     some_json = parseJson("""{
+    #         "name": "Barbell Shoulder Press",
+    #         "movement_plane": "Vertical",
+    #         "movement_category": "Push",
+    #         "body_area": "Lower",
+    #         "movement_type": "Bilateral",
+    #         "status": "Incomplete",
+    #         "error": ""
+    #     }
+    #     """)
 
-        mv = some_json.to(Movement)
+    #     mv = some_json.to(Movement)
     
-    echo db_insert(mv)
+    # echo db_insert(mv)
+    discard RDB().table("movement").select("name")
+    let newMovementCombo = MovementCombo(name: "Workout: A - Pull-up + Split Squat", movements: @["Pull-up", "Step Up"])
+    echo db_insert(newMovementCombo)

@@ -43,8 +43,7 @@ let
 
     movement_combo_table = [
         Column().increments("id"),
-        Column().string("name").unique(),
-        Column().foreign("movement_id").reference("id").on("movement").onDelete(SET_NULL)
+        Column().string("name").unique()
     ]
 
     movement_combo_assignment_table = [
