@@ -56,26 +56,63 @@ proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_i
                 ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
                     echo ($status, $resp))
 
-proc changeModeTo(p: PageMode) =
+proc switchTo(p: PageMode) =
     pageMode = p
+
+proc repsSliderToOutput() = 
+    var repsInputElement = document.getElementById("repsInputId")
+    var repsOutputElement = document.getElementById("repsOutputId")
+    repsOutputElement.value = repsInputElement.value & " reps"
 
 proc render(): VNode =
 
     if window.location.pathname == "/index.html" or window.location.pathname == "":
-        result = buildHtml():
-                    tdiv:
-                        createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Currently not logged in.")
+        result = 
+            buildHtml():
+                tdiv:
+                    createSpan(span = StatusSpan, header = InformationHeader, padding = 1, message = "Currently not logged in.")
 
-                        case pageMode:
-                            of Welcome:
-                                
-                                createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome!")
+                    case pageMode:
+                        of Welcome:
                             
-                                a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => changeModeTo(Workout)):
-                                    text "Start the workout"
+                            createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome!")
+                        
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
+                                text "Start the workout"
 
-                            of Workout:
-                                text "add workout stuff"
+                        of Workout:
+                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = "Performing Workout: A")
+                            createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
+                            header(class = "tc"):
+                                h1(class = $AttentionHeader & " pb2"):
+                                    text "Pull-up"
+                                input(type = "range", id = "repsInputId", value="8", min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
+                                output(id = "repsOutputId", class="pl3 avenir tr"):
+                                    text "can you do " & $8 & " reps ?"
+                                h1(class = $AttentionHeader):
+                                    a(class = $BigGreenButton & " avenir tc"):
+                                        text "Done Set"
+                            br()
+                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "This workout so far:")
+                            tdiv(class = "bg-green avenir"):
+                                table(class = "f6 ph3 mt0 underline center"):
+                                    thead:
+                                        tr(class = "stripe-dark"):
+                                            th(class = "fw6 tl pa3 bg-green tl"):
+                                                text "Exercise"
+                                            th(class = "fw6 tl pa3 bg-green tr"):
+                                                text "Sets"
+                                    tbody(class = "lh-copy"):
+                                        tr(class = "stripe-dark"):
+                                            td(class = "pa3 tl tl"):
+                                                text "Split Squat"
+                                            td(class = "pa3 tl tr"):
+                                                text "1, 5, 3"
+                                        tr(class = "stripe-light"):
+                                            td(class = "pa3 tl"):
+                                                text "Pull Up"
+                                            td(class = "pa3 tl"):
+                                                text "4, 2, 1"
 
         return result
 
