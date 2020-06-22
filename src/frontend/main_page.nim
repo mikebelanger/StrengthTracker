@@ -114,6 +114,10 @@ proc render(): VNode =
                                             td(class = "pa3 tl"):
                                                 text "4, 2, 1"
 
+                            h1(class = "tc"):
+                                a(class = $BigBlueButton & " avenir tc"):
+                                    text "Done Combo"
+
         return result
 
 
