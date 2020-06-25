@@ -11,7 +11,7 @@ template render_json_for(stmts: untyped) =
     var crud = stmts
     resp %*crud
   except:
-    resp %*CRUDOBject(status: Error, error: getCurrentExceptionMsg())
+    resp %*CRUDOBject(status: Error, error: getCurrentExceptionMsg(), content: parseJson("{}"))
 
 routes:
 
@@ -36,5 +36,15 @@ routes:
                   .to(MovementCombo)
                   .db_insert
 # READ
+  post "/db_read_all_movements.json":
+
+    render_json_for:
+      db_read_all_rows_for(Movement())
+
+  post "/read_movement_by_name.json":
+
+    render_json_for:
+      Movement(name: request.body.parseJson.getStr).db_read_row
+
 # UPDATE
 # DELETE

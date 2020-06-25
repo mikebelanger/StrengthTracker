@@ -4,13 +4,14 @@ import json, sugar
 import ../app_types
 import components
 
-type PageMode = enum Welcome, Workout
+type PageMode = enum Welcome, Workout, ManageMovements
 var 
     page_loaded: bool
     app_state: cstring
     return_button: cstring = "click here for more stuff"
     movement_left_blank = false
     pageMode = Welcome
+    all_movements = parseJson("[]")
 
 # template show_for(t: Seconds, stmts: untyped) = 
 #     window.setTimeout(code = stmts, pause: t)
@@ -64,6 +65,13 @@ proc repsSliderToOutput() =
     var repsOutputElement = document.getElementById("repsOutputId")
     repsOutputElement.value = repsInputElement.value & " reps"
 
+proc loadMovements() =
+    switchTo(ManageMovements)
+    ajaxPost(url = "/db_read_all_movements.json", headers = @[], data = "", proc (status: int, resp: cstring) =
+        all_movements = parseJson($resp){"content"}
+        echo all_movements)
+
+
 proc render(): VNode =
 
     if window.location.pathname == "/index.html" or window.location.pathname == "":
@@ -80,6 +88,37 @@ proc render(): VNode =
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
                                 text "Start the workout"
 
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => loadMovements()):
+                                text "Look at Exercise Options"
+
+                        of ManageMovements:
+                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Manage Movements")
+                            table(class = "f6 ph3 mt0 center avenir"):
+                                thead:
+                                    th(class = "fw6 tl pa3 bg-green tl"):
+                                        text "Movement"
+                                    th(class = "fw6 tl pa3 bg-green tr"):
+                                        text "Plane"
+                                    th(class = "fw6 tl pa3 bg-green tr"):
+                                        text "Body Area"
+                                    th(class = "fw6 tl pa3 bg-green tr"):
+                                        text "Type"
+                                    th(class = "fw6 tl pa3 bg-green tr"):
+                                        text "Category"
+
+                                tbody(class = "lh-copy"):
+                                    for m in all_movements.items:
+                                        tr(class = "stripe-dark"):
+                                            td(class = "pa3 tl tl"):
+                                                text m{"name"}.getStr
+                                            td(class = "pa3 tl tl"):
+                                                text m{"movement_plane"}.getStr
+                                            td(class = "pa3 tl tl"):
+                                                text m{"body_area"}.getStr
+                                            td(class = "pa3 tl tl"):
+                                                text m{"movement_type"}.getStr
+                                            td(class = "pa3 tl tl"):
+                                                text m{"movement_category"}.getStr
                         of Workout:
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = "Performing Workout: A")
                             createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
