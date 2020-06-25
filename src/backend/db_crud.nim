@@ -51,7 +51,7 @@ proc db_insert*(input_movement: Movement): CRUDObject =
     let to_insert = input_movement.get_foreign_keys()
     RDB().table("movement").insert(to_insert)
 
-    return CRUDObject(status: Complete)
+    return CRUDObject(status: Complete, error: "", content: parseJson("{}"))
 
 
 proc db_insert*(movement_combo: MovementCombo): CRUDObject =
