@@ -18,8 +18,11 @@ var
 proc switchTo(p: PageMode) =
     pageMode = p
 
+proc switchTo(p: PageMode, cb: proc) =
+    cb()
+    pageMode = p
+
 proc loadMovements() =
-    switchTo(ManageMovements)
     ajaxPost(url = "/db_read_all_movements.json", headers = @[], data = "", proc (status: int, resp: cstring) =
         all_movements = parseJson($resp){"content"}
         echo all_movements)
@@ -90,7 +93,7 @@ proc render(): VNode =
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
                                 text "Start the workout"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => loadMovements()):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, loadMovements)):
                                 text "Look at Exercise Options"
 
                         of ManageMovements:
