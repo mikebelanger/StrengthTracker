@@ -118,17 +118,17 @@ proc db_read*(movement: Movement): CRUDObject =
                 query_json{"name"}= query_seq[0]{"name"}
 
                 query_json{"movement_plane"} = get_name_from_id(table_name = "movement_plane",
-                                                            id = query_seq[0]{"movement_plane_id"}.getInt)
+                                                            id = query_seq[0]{"movement_plane_id"}.get_id)
 
                 query_json{"body_area"}= get_name_from_id(table_name = "body_area",
-                                                            id = query_seq[0]{"body_area_id"}.getInt)
+                                                            id = query_seq[0]{"body_area_id"}.get_id)
 
 
                 query_json{"movement_type"}= get_name_from_id(table_name = "movement_type",
-                                                                id = query_seq[0]{"movement_type_id"}.getInt)
+                                                                id = query_seq[0]{"movement_type_id"}.get_id)
 
                 query_json{"movement_category"}= get_name_from_id(table_name = "movement_category",
-                                                                    id = query_seq[0]{"movement_category_id"}.getInt)
+                                                                    id = query_seq[0]{"movement_category_id"}.get_id)
                 
                 # this is for schema validation
                 discard query_json.to(Movement)
