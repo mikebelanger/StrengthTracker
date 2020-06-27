@@ -2,20 +2,36 @@ import allographer/query_builder
 import json
 import ../app_types
 import strutils
+import sequtils
+
+type
+    QueryResult = enum
+        Empty, One, Many
+
+proc kind_of_result(input: seq[JsonNode] | JsonNode): QueryResult =
+    case input.len:
+        of 0: result = Empty
+        of 1: result = One
+        else: result = Many
+
+proc get_id(input: JsonNode): int =
+    try:
+        result = input.getInt
+    except:
+        result = -1
 
 # HELPERS
 proc get_foreign_key_for(table_name: string, named: string): JsonNode =
 
-    var thing = RDB().table(table_name)
+    var 
+        query = RDB().table(table_name)
                      .select("id")
                      .where("name", "=", named)
                      .get()
 
-    if thing.len == 1:
-        var id = thing[0]{"id"}
-        return %*id
-    else:
-        return %*""
+    case query.kind_of_result: 
+        of Empty: result = %*""
+        else: result = query[0]
 
 
 proc get_foreign_keys(movement_params: Movement): JsonNode =
@@ -37,10 +53,9 @@ proc get_name_from_id(table_name: string, id: int, name = "name"): JsonNode =
     # TODO: make this less assuming
     var query = RDB().table(table_name).select(name).find(id)
 
-    if query.len == 1:
-        result = query{name}
-    else:
-        result = parseJson("{}")
+    case query.kind_of_result:
+        of One: result = query{name}
+        else: result = parseJson("{}")
 
 #####################
 ####### CREATE ######
@@ -85,48 +100,49 @@ proc db_insert*(movement_combo: MovementCombo): CRUDObject =
 ######## READ ##########
 ########################
 
-proc db_read_row*(movement: Movement): CRUDObject =
+proc db_read*(movement: Movement): CRUDObject =
     
-    var 
-        query_seq = RDB().table("movement")
+    var query_seq = RDB().table("movement")
                          .select("name", "movement_plane_id", "body_area_id", "movement_type_id", "movement_category_id")
                          .where("name", "=", movement.name)
                          .get()
-        query_json = parseJson("{}")
+
+    case query_seq.kind_of_result:
+
+        of One:
+
+            var query_json = parseJson("{}")
+
+            try:
+
+                query_json{"name"}= query_seq[0]{"name"}
+
+                query_json{"movement_plane"} = get_name_from_id(table_name = "movement_plane",
+                                                            id = query_seq[0]{"movement_plane_id"}.getInt)
+
+                query_json{"body_area"}= get_name_from_id(table_name = "body_area",
+                                                            id = query_seq[0]{"body_area_id"}.getInt)
 
 
-    if query_seq.len == 1:
+                query_json{"movement_type"}= get_name_from_id(table_name = "movement_type",
+                                                                id = query_seq[0]{"movement_type_id"}.getInt)
 
-        try:
+                query_json{"movement_category"}= get_name_from_id(table_name = "movement_category",
+                                                                    id = query_seq[0]{"movement_category_id"}.getInt)
+                
+                # this is for schema validation
+                discard query_json.to(Movement)
 
-            query_json{"name"}= query_seq[0]{"name"}
+                # if schema validates (object gets created successfully) then return that json
+                return CRUDObject(status: Complete, error: "", content: query_json)
 
-            query_json{"movement_plane"} = get_name_from_id(table_name = "movement_plane",
-                                                        id = query_seq[0]{"movement_plane_id"}.getInt)
+            except:
 
-            query_json{"body_area"}= get_name_from_id(table_name = "body_area",
-                                                        id = query_seq[0]{"body_area_id"}.getInt)
+                return CRUDObject(status: Incomplete, error: getCurrentExceptionMsg())
 
+        else:
 
-            query_json{"movement_type"}= get_name_from_id(table_name = "movement_type",
-                                                            id = query_seq[0]{"movement_type_id"}.getInt)
-
-            query_json{"movement_category"}= get_name_from_id(table_name = "movement_category",
-                                                                id = query_seq[0]{"movement_category_id"}.getInt)
-            
-            # this is for schema validation
-            discard query_json.to(Movement)
-
-            # if schema validates (object gets created successfully) then return that json
-            return CRUDObject(status: Complete, error: "", content: query_json)
-
-        except:
-
-            return CRUDObject(status: Incomplete, error: getCurrentExceptionMsg())
-
-    else:
-
-        return CRUDObject(status: Error, error: "row with name: " & movement.name & " not found.", content: parseJson("{}"))
+            return CRUDObject(status: Error, error: "row with name: " & movement.name & " not found.", content: parseJson("{}"))
 
 
 proc db_read_all_rows_for*(movement: Movement): CRUDObject =
@@ -137,7 +153,7 @@ proc db_read_all_rows_for*(movement: Movement): CRUDObject =
         for_json: seq[JsonNode]
 
     for m in movement_names:
-        var queried_movement = db_read_row(Movement(name: m{"name"}.getStr))
+        var queried_movement = db_read(Movement(name: m{"name"}.getStr))
 
         if queried_movement.status == Complete:
 
@@ -145,6 +161,34 @@ proc db_read_all_rows_for*(movement: Movement): CRUDObject =
 
     result.status = Complete
     result.content = %*for_json
+
+
+proc db_read*(movement_combo: MovementCombo): CRUDObject =
+
+    var 
+        movement_combo_id = get_foreign_key_for(table_name = "movement_combo", named = movement_combo.name)
+        these_movement_combo_assignments = 
+
+                      RDB().table("movement_combo_assignment")
+                           .select("id", "movement_id", "movement_combo_id")
+                           .where("movement_combo_id", "=", movement_combo_id.getInt)
+                           .get()
+        
+        # make sure we have them all
+        all_assignments_exist = these_movement_combo_assignments.mapIt(it.get_id)
+                                                                .allIt(it > 0)
+
+    
+    if all_assignments_exist:
+
+        echo "true"
+    
+    else:
+        echo "false"
+
+
+
+    
 
 if isMainModule:
     

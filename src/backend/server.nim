@@ -44,7 +44,12 @@ routes:
   post "/read_movement_by_name.json":
 
     render_json_for:
-      Movement(name: request.body.parseJson.getStr).db_read_row
+      Movement(name: request.body.parseJson.getStr).db_read
+
+  post "/get_movement_combo.json":
+
+    render_json_for:
+      MovementCombo(name: request.body.parseJson.getStr).db_read
 
 # UPDATE
 # DELETE
