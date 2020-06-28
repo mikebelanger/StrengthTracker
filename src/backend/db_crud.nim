@@ -3,6 +3,8 @@ import json
 import ../app_types
 import strutils
 import sequtils
+import database_schema
+import allographer/schema_builder
 
 type
     QueryResult = enum
@@ -204,5 +206,26 @@ if isMainModule:
     # echo %*m, %*x
     # var all_movements = db_read_all_rows_for(Movement())
     # echo all_movements
-    echo MovementCombo(name: "Workout: A").db_read
-    echo MovementCombo(name: "Workout: A - Pull-up + Split Squat").db_read
+    # echo MovementCombo(name: "Workout: A").db_read
+    # echo MovementCombo(name: "Workout: A - Pull-up + Split Squat").db_read
+
+    proc get_names(columns: openArray[Column], json_input: JsonNode): JsonNode =
+        
+        result = parseJson("{}")
+        for c in columns:
+
+            if c.name.contains("_id"):
+                var normal_name = c.name.replace("_id", "")
+                result{normal_name}= get_name_from_id(table_name = normal_name, id = json_input{c.name}.get_id)
+            
+            elif c.name == "name":
+                result{"name"}= json_input{"name"}
+            
+            else:
+                continue
+
+    echo RDB().table("movement")
+              .select()
+              .where("name", "=", "One-armed pull-up")
+              .get()
+              .mapIt(get_names(columns = movement_table, json_input = it))

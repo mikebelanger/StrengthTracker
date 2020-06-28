@@ -66,9 +66,8 @@ if isMainModule:
     ])
 
 
-        # add_enum_types_to_table(table_name = "movement_plane", input_enum = MovementPlane)
+    # add_enum_types_to_table(table_name = "movement_plane", input_enum = MovementPlane)
     add_enum_types_to_table(table_name = "body_area", input_enum = BodyArea)
     add_enum_types_to_table(table_name = "movement_type", input_enum = MovementType)
     add_enum_types_to_table(table_name = "movement_category", input_enum = MovementCategory)
     add_enum_types_to_table(table_name = "movement_plane", input_enum = MovementPlane)
-
