@@ -165,30 +165,19 @@ proc db_read_all_rows_for*(movement: Movement): CRUDObject =
 
 proc db_read*(movement_combo: MovementCombo): CRUDObject =
 
-    var 
-        movement_combo_id = get_foreign_key_for(table_name = "movement_combo", named = movement_combo.name)
-        these_movement_combo_assignments = 
-
-                      RDB().table("movement_combo_assignment")
-                           .select("id", "movement_id", "movement_combo_id")
-                           .where("movement_combo_id", "=", movement_combo_id.getInt)
-                           .get()
-        
-        # make sure we have them all
-        all_assignments_exist = these_movement_combo_assignments.mapIt(it.get_id)
-                                                                .allIt(it > 0)
-
+    var movement_combo_id = get_foreign_key_for(table_name = "movement_combo", named = movement_combo.name)
     
-    if all_assignments_exist:
+    if movement_combo_id.hasKey("id"):
 
-        echo "true"
-    
-    else:
-        echo "false"
+        var movement_names = RDB().table("movement_combo_assignment")
+                                  .select("id", "movement_id", "movement_combo_id")
+                                  .where("movement_combo_id", "=", movement_combo_id{"id"}.getInt)
+                                  .get()
+                                  .mapIt(get_name_from_id(table_name = "movement", 
+                                                         id = it{"movement_id"}.get_id))
 
-
-
-    
+        return CRUDObject(status: Complete, 
+                          content: %*{ "name": movement_combo.name, "movements": movement_names })
 
 if isMainModule:
     
@@ -213,5 +202,7 @@ if isMainModule:
     # var m = db_read_row(Movement(name : "Pull-Up"))
     # var x = db_read_row(Movement(name : "Step Up"))
     # echo %*m, %*x
-    var all_movements = db_read_all_rows_for(Movement())
-    echo all_movements
+    # var all_movements = db_read_all_rows_for(Movement())
+    # echo all_movements
+    echo MovementCombo(name: "Workout: A").db_read
+    echo MovementCombo(name: "Workout: A - Pull-up + Split Squat").db_read
