@@ -6,226 +6,74 @@ import sequtils
 import database_schema
 import allographer/schema_builder
 
-type
-    QueryResult = enum
-        Empty, One, Many
+#####################
+##### HELPERS #######
+#####################
+proc any_missing_parameters(col: openArray[Column], json_pars: JsonNode): seq[string] =
 
-proc kind_of_result(input: seq[JsonNode] | JsonNode): QueryResult =
-    case input.len:
-        of 0: result = Empty
-        of 1: result = One
-        else: result = Many
-
-proc get_id(input: JsonNode): int =
-    try:
-        result = input.getInt
-    except:
-        result = -1
-
-# HELPERS
-proc get_foreign_key_for(table_name: string, named: string): JsonNode =
-
-    var 
-        query = RDB().table(table_name)
-                     .select("id")
-                     .where("name", "=", named)
-                     .get()
-
-    case query.kind_of_result: 
-        of Empty: result = %*""
-        else: result = query[0]
-
-
-proc get_foreign_keys(movement_params: Movement): JsonNode =
-
-    result = %*{
-        "name": movement_params.name,
-        "movement_plane_id": get_foreign_key_for(table_name = "movement_plane", 
-                                                  named = $movement_params.movement_plane),
-        "body_area_id": get_foreign_key_for(table_name = "body_area",
-                                            named = $movement_params.body_area),
-        "movement_type_id": get_foreign_key_for(table_name = "movement_type",
-                                                named = $movement_params.movement_type),
-        "movement_category_id": get_foreign_key_for(table_name = "movement_category",
-                                                    named = $movement_params.movement_category)
-    }
-
-proc get_name_from_id(table_name: string, id: int, name = "name"): JsonNode =
-
-    # TODO: make this less assuming
-    var query = RDB().table(table_name).select(name).find(id)
-
-    case query.kind_of_result:
-        of One: result = query{name}
-        else: result = parseJson("{}")
+    result = col.filterIt(it.name != "id")
+                .filterIt(json_pars.hasKey(it.name) == false or json_pars{it.name}.getStr.len == 0)
+                .mapIt(it.name)
 
 #####################
 ####### CREATE ######
 #####################
 
-proc db_insert*(input_movement: Movement): CRUDObject =
+proc create*(json_parameters: JsonNode, kind_of: SchemaType): CRUDObject =
 
-    let to_insert = input_movement.get_foreign_keys()
-    RDB().table("movement").insert(to_insert)
+    case kind_of:
+        of Movement:
 
-    return CRUDObject(status: Complete, error: "", content: parseJson("{}"))
+            # check schema
+            var any_missing_pars = any_missing_parameters(database_schema.movement_table, json_parameters)
+            if any_missing_pars.len > 0:
 
-
-proc db_insert*(movement_combo: MovementCombo): CRUDObject =
-    
-    # first create the movement in the database
-    let
-        to_insert = %*{
-            "name": movement_combo.name
-        }
-        combo_id = RDB().table("movement_combo").insertID(to_insert)
-
-    # now loop through each movement and add it, if it exists
-    for movement in movement_combo.movements:
-        var movement_id = get_foreign_key_for(table_name = "movement", named = movement)
-
-        if movement_id.getInt > 0:
-
-            # create movement assignment 
-            RDB().table("movement_combo_assignment").insert(%*{
-                "movement_id": movement_id,
-                "movement_combo_id": combo_id    
-            })
-        
-        else:
-            return CRUDObject(status: Error, error: movement & " does not exist.")
-
-
-    return CRUDObject(status: Complete)
-
-########################
-######## READ ##########
-########################
-
-proc db_read*(movement: Movement): CRUDObject =
-    
-    var query_seq = RDB().table("movement")
-                         .select("name", "movement_plane_id", "body_area_id", "movement_type_id", "movement_category_id")
-                         .where("name", "=", movement.name)
-                         .get()
-
-    case query_seq.kind_of_result:
-
-        of One:
-
-            var query_json = parseJson("{}")
-
-            try:
-
-                query_json{"name"}= query_seq[0]{"name"}
-
-                query_json{"movement_plane"} = get_name_from_id(table_name = "movement_plane",
-                                                            id = query_seq[0]{"movement_plane_id"}.get_id)
-
-                query_json{"body_area"}= get_name_from_id(table_name = "body_area",
-                                                            id = query_seq[0]{"body_area_id"}.get_id)
-
-
-                query_json{"movement_type"}= get_name_from_id(table_name = "movement_type",
-                                                                id = query_seq[0]{"movement_type_id"}.get_id)
-
-                query_json{"movement_category"}= get_name_from_id(table_name = "movement_category",
-                                                                    id = query_seq[0]{"movement_category_id"}.get_id)
+                let missing_str = any_missing_pars.foldl(a & "," & b)
                 
-                # this is for schema validation
-                discard query_json.to(Movement)
+                result = CRUDObject(status: Error, 
+                                    error: "Incomplete.  Missing: " & missing_str)
 
-                # if schema validates (object gets created successfully) then return that json
-                return CRUDObject(status: Complete, error: "", content: query_json)
+            else:
 
-            except:
+                try:
 
-                return CRUDObject(status: Incomplete, error: getCurrentExceptionMsg())
+                    RDB().table("movement")
+                         .insert(json_parameters)
+
+                except DbError:
+                    result = CRUDObject(status: Error, 
+                                        error: "Already exists: " & $json_parameters)
 
         else:
-
-            return CRUDObject(status: Error, error: "row with name: " & movement.name & " not found.", content: parseJson("{}"))
-
-
-proc db_read_all_rows_for*(movement: Movement): CRUDObject =
-
-    # first get names
-    var 
-        movement_names = RDB().table("movement").select("name").get()
-        for_json: seq[JsonNode]
-
-    for m in movement_names:
-        var queried_movement = db_read(Movement(name: m{"name"}.getStr))
-
-        if queried_movement.status == Complete:
-
-            for_json.add(queried_movement.content)
-
-    result.status = Complete
-    result.content = %*for_json
-
-
-proc db_read*(movement_combo: MovementCombo): CRUDObject =
-
-    var movement_combo_id = get_foreign_key_for(table_name = "movement_combo", named = movement_combo.name)
-    
-    if movement_combo_id.hasKey("id"):
-
-        var movement_names = RDB().table("movement_combo_assignment")
-                                  .select("id", "movement_id", "movement_combo_id")
-                                  .where("movement_combo_id", "=", movement_combo_id{"id"}.getInt)
-                                  .get()
-                                  .mapIt(get_name_from_id(table_name = "movement", 
-                                                         id = it{"movement_id"}.get_id))
-
-        return CRUDObject(status: Complete, 
-                          content: %*{ "name": movement_combo.name, "movements": movement_names })
+            echo "not supported yet"
 
 if isMainModule:
-    
-    # let 
-    #     some_json = parseJson("""{
-    #         "name": "Barbell Shoulder Press",
-    #         "movement_plane": "Vertical",
-    #         "movement_category": "Push",
-    #         "body_area": "Lower",
-    #         "movement_type": "Bilateral",
-    #         "status": "Incomplete",
-    #         "error": ""
-    #     }
-    #     """)
 
-    #     mv = some_json.to(Movement)
-    
-    # echo db_insert(mv)
-    # discard RDB().table("movement").select("name")
-    # let newMovementCombo = MovementCombo(name: "Workout: A - Pull-up + Split Squat", movements: @["Pull-up", "Step Up"])
-    # echo db_insert(newMovementCombo)
-    # var m = db_read_row(Movement(name : "Pull-Up"))
-    # var x = db_read_row(Movement(name : "Step Up"))
-    # echo %*m, %*x
-    # var all_movements = db_read_all_rows_for(Movement())
-    # echo all_movements
-    # echo MovementCombo(name: "Workout: A").db_read
-    # echo MovementCombo(name: "Workout: A - Pull-up + Split Squat").db_read
+    var 
+        some_json = parseJson("""
+        {"name": "some_movement"}
+        """)
 
-    proc get_names(columns: openArray[Column], json_input: JsonNode): JsonNode =
-        
-        result = parseJson("{}")
-        for c in columns:
+        more_json = parseJson("""
+        {
+        "name": "chest-press",
+        "area": "",
+        "plane":"Vertical"
+        }
+        """)
 
-            if c.name.contains("_id"):
-                var normal_name = c.name.replace("_id", "")
-                result{normal_name}= get_name_from_id(table_name = normal_name, id = json_input{c.name}.get_id)
-            
-            elif c.name == "name":
-                result{"name"}= json_input{"name"}
-            
-            else:
-                continue
+        complete_json = parseJson("""
+        {
+        "name": "chest-press",
+        "area": "Upper",
+        "plane":"Vertical",
+        "concentric_type": "Press",
+        "symmetry": "Unilateral"
+        }
+        """)
+    # echo more_json{"area"}.len
+        r1 = create(kind_of = Movement, json_parameters = some_json)
+        r2 = create(kind_of = Movement, json_parameters = more_json)
+        r3 = create(kind_of = Movement, json_parameters = complete_json)
 
-    echo RDB().table("movement")
-              .select()
-              .where("name", "=", "One-armed pull-up")
-              .get()
-              .mapIt(get_names(columns = movement_table, json_input = it))
+    echo r1, r2, r3

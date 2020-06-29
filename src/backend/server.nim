@@ -26,30 +26,29 @@ routes:
     
     render_json_for:
       request.body.parseJson
-                  .to(Movement)
-                  .db_insert
+                  .create(kind_of = Movement)
   
-  post "/create_movement_combo.json":
+#   post "/create_movement_combo.json":
 
-    render_json_for:
-      request.body.parseJson
-                  .to(MovementCombo)
-                  .db_insert
-# READ
-  post "/db_read_all_movements.json":
+#     render_json_for:
+#       request.body.parseJson
+#                   .to(MovementCombo)
+#                   .db_insert
+# # READ
+#   post "/db_read_all_movements.json":
 
-    render_json_for:
-      db_read_all_rows_for(Movement())
+#     render_json_for:
+#       db_read_all_rows_for(Movement())
 
-  post "/read_movement_by_name.json":
+#   post "/read_movement_by_name.json":
 
-    render_json_for:
-      Movement(name: request.body.parseJson.getStr).db_read
+#     render_json_for:
+#       Movement(name: request.body.parseJson.getStr).db_read
 
-  post "/get_movement_combo.json":
+#   post "/get_movement_combo.json":
 
-    render_json_for:
-      MovementCombo(name: request.body.parseJson.getStr).db_read
+#     render_json_for:
+#       MovementCombo(name: request.body.parseJson.getStr).db_read
 
 # UPDATE
 # DELETE
