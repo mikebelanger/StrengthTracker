@@ -26,7 +26,7 @@ routes:
     
     render_json_for:
       request.body.parseJson
-                  .create(kind_of = Movement)
+                  .db_create(kind_of = Movement)
   
 #   post "/create_movement_combo.json":
 
