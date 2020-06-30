@@ -7,7 +7,7 @@ import db_crud
 import ../app_types
 
 template render_json_for(stmts: untyped) =
-  try:
+  try:            
     var crud = stmts
     resp %*crud
   except:
@@ -22,11 +22,12 @@ routes:
     resp %*{"content": "this works loading too"}
 
 # CREATE
+
   post "/create_movement.json":
     
     render_json_for:
       request.body.parseJson
-                  .db_create(kind_of = Movement)
+                  .db_create(Movement)
   
 #   post "/create_movement_combo.json":
 
@@ -34,7 +35,13 @@ routes:
 #       request.body.parseJson
 #                   .to(MovementCombo)
 #                   .db_insert
-# # READ
+# READ
+
+  post "/read_movement_info":
+
+    render_json_for:
+      request.body.parseJson
+                  .db_read(MovementCategories, with="name", "=", "Combo: A")
 #   post "/db_read_all_movements.json":
 
 #     render_json_for:
