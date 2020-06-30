@@ -30,7 +30,7 @@ proc filter_params(json_params: JsonNode): JsonNode =
 ####### CREATE ######
 #####################
 
-proc db_create*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
+proc db_create_one*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
 
     # ensure all parameters are allowed
     let params = json_parameters.filter_params
@@ -67,11 +67,10 @@ proc db_create*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject 
 ####### READ ########
 #####################
 
-proc db_read*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
+proc db_read_some*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
 
     # filter out any unnecessary / dangereous parameters
     let params = json_parameters.filter_params
-    var return_seq: seq[JsonNode]
 
     case schema_type:
         of Movement:
@@ -83,13 +82,25 @@ proc db_read*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
             for key, val in params.pairs:
                 movement = movement.where(key, "=", val.getStr)
             
-            return_seq = movement.get()
+            result.content = %*movement.get()
 
-        of MovementCombo, Movements, MovementCombos, Set, Sets:
+        of MovementAttribute:
+            result.content = parseJson("{}")
+
+            var 
+                movement = RDB().table("movement")
+                sane_params = params["distinct"].filterIt(database_schema.movement_params.contains(it.getStr))
+                                    .mapIt(it.getStr)
+
+            # loop through json attributes
+            
+            for attr in sane_params:
+                result.content{attr}= %*movement.select(attr).distinct().get().mapIt(it{attr})
+
+        of MovementCombo, Set:
             echo "plural"
 
     result.status = Complete
-    result.content = %*return_seq
 
 if isMainModule:
 
@@ -139,7 +150,7 @@ if isMainModule:
 
         query_json = parseJson("""
         {
-        "plane": "Horizontal"
+        "distinct": ["plane", "concentric_type", "bogus_category", "symmetry"]        
         }
         """)
     # echo more_json{"area"}.len
@@ -151,4 +162,5 @@ if isMainModule:
 
     # echo r4
     # echo r5
-    echo query_json.db_read(Movement)
+    # echo query_json.db_read_multiple(MovementAttribute)
+    echo query_json.db_read_some(MovementAttribute)

@@ -27,7 +27,7 @@ routes:
     
     render_json_for:
       request.body.parseJson
-                  .db_create(Movement)
+                  .db_create_one(Movement)
   
 #   post "/create_movement_combo.json":
 
@@ -37,11 +37,19 @@ routes:
 #                   .db_insert
 # READ
 
-  post "/read_movement_info":
+  post "/read_all_movement_with":
 
     render_json_for:
       request.body.parseJson
-                  .db_read(MovementCategories, with="name", "=", "Combo: A")
+                  .db_read_some(Movement)
+
+  post "/read_distinct_movement_attributes":
+
+    render_json_for:
+      
+      let movement_attrs = %*{"distinct": ["plane","symmetry","concentric_type", "symmetry"]}
+
+      movement_attrs.db_read_some(MovementAttribute)
 #   post "/db_read_all_movements.json":
 
 #     render_json_for:

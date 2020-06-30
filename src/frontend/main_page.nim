@@ -145,30 +145,6 @@ proc render(): VNode =
                                             option(value = ord(movement_plane).toCstr):
                                                 text $movement_plane
 
-                            span(class = $InformationSpan):
-                                label(`for` = "body_area", id = "body_area_container"):
-                                    select(id = "body_area"):
-                                        option(value = "Select Body Area")
-                                        for body_area in BodyArea.low .. BodyArea.high:
-                                            option(value = ord(body_area).toCstr):
-                                                text $body_area
-
-                            span(class = $InformationSpan):
-                                label(`for` = "movement_type", id = "movement_type_container"):
-                                    select(id = "movement_type"):
-                                        option(value = "Select Movement Type")
-                                        for movement_type in MovementType.low .. MovementType.high:
-                                            option(value = ord(movement_type).toCstr):
-                                                text $movement_type
-
-                            span(class = $InformationSpan):
-                                label(`for` = "movement_category", id = "movement_category_container"):
-                                    select(id = "movement_category"):
-                                        option(value = "Select Movement Category")
-                                        for movement_category in MovementCategory.low .. MovementCategory.high:
-                                            option(value = ord(movement_category).toCstr):
-                                                text $movement_category
-
                             a(class = $BigGreenButton & " avenir tc", onclick = () => 
                                 validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
                                 text "Click to submit"
