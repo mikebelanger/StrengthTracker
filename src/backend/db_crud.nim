@@ -14,11 +14,14 @@ proc filter_params(json_params: JsonNode): JsonNode =
     # I have to explicitely declare this json for some reason
     var result = parseJson("{}")
 
+    echo all_params
+
     for key in json_params.keys:
-        if key.is_permitted:
+        if all_params.contains(key):
             result{key}= %*json_params{key}
 
     # for some reason, I have to explicitly return result here.  Otherwise its nil
+    echo result
     return result
 
 proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T = 
@@ -153,7 +156,9 @@ if isMainModule:
 
     #     else:
     #         echo "not supported yet"
-
+    echo complete_json.convert_to(Movement)
+                      .db_create
+    
     echo double_json.convert_to(Movement)
                     .db_create
     echo double_json.convert_to(Movement)

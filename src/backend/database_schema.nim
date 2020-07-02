@@ -2,22 +2,7 @@ import db_sqlite
 import allographer/schema_builder
 import sequtils, strutils
 import json
-
-type
-
-    Movement* = object
-        name*: string
-        area*: string
-        concentric_type*: string
-        symmetry*: string
-        plane*: string
-
-    MovementCombo* = object
-        name*: string
-
-    MovementComboAssignment* = object
-        movement_id*: int
-        movement_combo_id*: int
+import ../app_types
 
 const 
     forbidden = @[
@@ -28,40 +13,59 @@ const
         "name"
     ]
 
-proc is_permitted*(key: string): bool =
+type
+    DbRelation = enum
+        UniqueTableColumnString
+        TableColumnString
+        TableColumnInteger
+        ForeignKey
 
-    result = forbidden.allIt(not key.contains(it))
+func determine_relation(input: string): DbRelation =
+    if always_unique.contains(input):
+        UniqueTableColumnString
+    else:
+        TableColumnString
+
+func determine_relation(input: int): DbRelation =
+    TableColumnInteger
+
+func determine_relation(input: Movement | MovementCombo): DbRelation =
+    ForeignKey
+
+func is_forbidden(key: string): bool =
+
+    result = forbidden.anyIt(key.contains(it))
 
 
-proc get_permitted_params(columns: openArray[Column]): seq[Column] = 
+func get_permitted_params(columns: openArray[Column]): seq[Column] = 
 
-    result = columns.filterIt(it.name.is_permitted)
+    result = columns.filterIt(not it.name.is_forbidden)
 
 
-proc create_column_array(o: object): seq[Column] =
+func create_column_array(o: object): seq[Column] =
     result.add(Column().increments("id"))
 
     for key, val in o.fieldPairs:
 
-        if always_unique.anyIt(it == key):
-            result.add(Column().string(key).unique())
+        case val.determine_relation:
 
-        elif typeof(val) is int and key.contains("_id"):
-            result.add(Column().foreign(key)
-                               .reference("id")
-                               .on(key.replace("_id", ""))
-                               .onDelete(SET_NULL)
-                               )
-        
-        elif typeof(val) is int:
-            result.add(Column().integer(key))
-        
-        elif typeof(val) is string:
-            result.add(Column().string(key))
+            of TableColumnString:
+                result.add(Column().string(key))
+
+            of UniqueTableColumnString:
+                result.add(Column().string(key).unique())
+
+            of TableColumnInteger:
+                result.add(Column().integer(key))
             
-
-        
-
+            of ForeignKey:
+                result.add(Column()
+                      .foreign(key & "_id")
+                      .reference("id")
+                      .on(key)
+                      .onDelete(SET_NULL)
+                )
+            
 
 let
 
@@ -96,10 +100,11 @@ let
 
 
     # derive permitted params from table, filtering out sensitive param names
-    movement_params* = movement_table.get_permitted_params
-    movement_combo_params* = movement_combo_table.get_permitted_params
-    movement_combo_assignment_params* = movement_combo_assignment_table.get_permitted_params
+    movement_params = movement_table.get_permitted_params
+    movement_combo_params = movement_combo_table.get_permitted_params
+    movement_combo_assignment_params = movement_combo_assignment_table.get_permitted_params
 
+    all_params* = concat(movement_params, movement_combo_params, movement_combo_assignment_params).mapIt(it.name)
 if isMainModule:
 
 
