@@ -5,9 +5,19 @@ import sequtils
 import database_schema
 import json
 
-#####################
-###### HELPERS ######
-#####################
+#################################
+###### HELPERS / TEMPLATES ######
+#################################
+
+template safely_create(stmts: untyped) =
+
+    try:
+        stmts
+    
+    except:
+        return CRUDObject(status: Error, error: getCurrentExceptionMsg())
+
+    return CRUDObject(status: Complete, error: "")
 
 proc filter_params(json_params: JsonNode): JsonNode =
 
@@ -26,11 +36,61 @@ proc filter_params(json_params: JsonNode): JsonNode =
 
 proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T = 
 
-    # ensure all parameters are allowed
+    # ensure all input parameters are allowed before converting to an object
     var params = input_params.filter_params
 
     result = params.to(t)
 
+proc db_read_id(table, matching: string, column = "name"): int =
+
+    var query_results = RDB().table(table).select("id").where(column, "=", matching).get()
+
+    for q in query_results:
+        try:
+            return q{"id"}.getInt
+        except:
+            return 0
+
+
+proc db_read_id(m: Movement, matching: string): int =
+
+    return db_read_id(table = "movement", matching = matching)
+
+
+proc db_read_id(mc: MovementCombo, matching: string): int =
+
+    return db_read_id(table = "movement_combo", matching = matching)
+
+
+func exists(id: int): bool =
+    return id > 0
+
+
+proc add_any_foreign_keys(o: object, by: string): JsonNode =
+
+    var result = parseJson("{}")
+
+    for key, val in o.fieldPairs:
+        
+        case val.determine_relation:
+
+            of ForeignKey:
+            
+                var id = val.db_read_id(matching = val.name)
+
+                if id.exists:
+                    
+                    result{key & "_id"}= %*id
+
+                else:
+                    result{key & "_id"}= %*""
+
+            else:
+
+                result{key}= %*val
+
+    return result
+            
 
 #####################
 ####### CREATE ######
@@ -38,15 +98,23 @@ proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T =
 
 proc db_create*(m: Movement, table = "movement"): CRUDObject =
 
-    try:
-
+    safely_create:
         RDB().table(table)
              .insert(%*m)
 
-        result.status = Complete
 
-    except DbError:
-        result = CRUDObject(status: Error, error: "Already exists: " & $m)
+proc db_create*(movement_combo: MovementCombo, table = "movement_combo"): CRUDObject =
+
+    safely_create:
+        RDB().table(table)
+             .insert(%*movement_combo)
+
+
+proc db_create*(movement_combo_assignment: MovementComboAssignment, table = "movement_combo_assignment"): CRUDObject =
+    
+    safely_create:
+        RDB().table(table)
+             .insert(movement_combo_assignment.add_any_foreign_keys(by = "name"))
 
 
 # #####################
@@ -58,6 +126,7 @@ proc db_read_any*[T](obj: T, table: string): seq[T] =
     var table_conn = RDB().table(table)
     var columns: seq[string]
 
+    # add all object attributes as columns to select
     for key, val in obj.fieldPairs:
 
         columns.add(key)
@@ -136,6 +205,26 @@ if isMainModule:
         "concentric_type": "Squat",
         }
         """)
+
+        split_a = parseJson("""
+        {
+        "name": "workout: a - split squat & push up"
+        }
+        """)
+
+        pushup = pushup_json.convert_to(Movement)
+        split_squat = query_json.convert_to(Movement)
+        workout_split_a = split_a.convert_to(MovementCombo)
+        mc_a = MovementComboAssignment(movement: pushup, movement_combo: workout_split_a)
+
+
+    # echo pushup, split_squat, workout_split_a
+    echo pushup.db_create, split_squat.db_create, workout_split_a.db_create
+    echo mc_a.db_create
+    # for m in @[pushup, split_squat]:
+    #     MovementComboAssignment(movement: m, 
+    #                             movement_combo: workout_split_a).db_create
+
     # echo more_json{"area"}.len
         # r1 = db_create(kind_of = Movement, json_parameters = some_json)
         # r2 = db_create(kind_of = Movement, json_parameters = more_json)
@@ -156,18 +245,18 @@ if isMainModule:
 
     #     else:
     #         echo "not supported yet"
-    echo complete_json.convert_to(Movement)
-                      .db_create
+    # echo complete_json.convert_to(Movement)
+    #                   .db_create
     
-    echo double_json.convert_to(Movement)
-                    .db_create
-    echo double_json.convert_to(Movement)
-                    .db_create
-    echo pushup_json.convert_to(Movement)
-                    .db_create
+    # echo double_json.convert_to(Movement)
+    #                 .db_create
+    # echo double_json.convert_to(Movement)
+    #                 .db_create
+    # echo pushup_json.convert_to(Movement)
+    #                 .db_create
 
-    echo query_json.convert_to(Movement)
-    echo db_read_any(Movement(area: "Upper"), table = "movement")
+    # echo query_json.convert_to(Movement)
+    # echo db_read_any(Movement(area: "Upper"), table = "movement")
     # echo db_read_any(Movement(plane: "*"))
 
     # echo db_read_unique(table = "movement", "plane")

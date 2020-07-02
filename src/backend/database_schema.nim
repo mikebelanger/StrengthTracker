@@ -14,22 +14,22 @@ const
     ]
 
 type
-    DbRelation = enum
+    DbRelation* = enum
         UniqueTableColumnString
         TableColumnString
         TableColumnInteger
         ForeignKey
 
-func determine_relation(input: string): DbRelation =
-    if always_unique.contains(input):
+proc determine_relation*(input: string): DbRelation =
+    if always_unique.anyIt(it == input):
         UniqueTableColumnString
     else:
         TableColumnString
 
-func determine_relation(input: int): DbRelation =
+func determine_relation*(input: int): DbRelation =
     TableColumnInteger
 
-func determine_relation(input: Movement | MovementCombo): DbRelation =
+func determine_relation*(input: Movement | MovementCombo): DbRelation =
     ForeignKey
 
 func is_forbidden(key: string): bool =
@@ -42,7 +42,7 @@ func get_permitted_params(columns: openArray[Column]): seq[Column] =
     result = columns.filterIt(not it.name.is_forbidden)
 
 
-func create_column_array(o: object): seq[Column] =
+proc create_column_array(o: object): seq[Column] =
     result.add(Column().increments("id"))
 
     for key, val in o.fieldPairs:
@@ -50,10 +50,12 @@ func create_column_array(o: object): seq[Column] =
         case val.determine_relation:
 
             of TableColumnString:
-                result.add(Column().string(key))
-
-            of UniqueTableColumnString:
-                result.add(Column().string(key).unique())
+                
+                # check if string's database column should have a unique constraint
+                if key.determine_relation == UniqueTableColumnString:
+                    result.add(Column().string(key).unique())
+                else:
+                    result.add(Column().string(key))                
 
             of TableColumnInteger:
                 result.add(Column().integer(key))
@@ -65,6 +67,9 @@ func create_column_array(o: object): seq[Column] =
                       .on(key)
                       .onDelete(SET_NULL)
                 )
+
+            else:
+                result.add(Column().string(key))
             
 
 let

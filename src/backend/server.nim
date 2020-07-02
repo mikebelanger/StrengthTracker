@@ -3,9 +3,7 @@
 
 import jester
 import json
-import database_schema
 import ../app_types
-import sequtils
 import db_crud
 
 template render_json_for(stmts: untyped) =
@@ -19,11 +17,13 @@ template render_json_for(stmts: untyped) =
 
 routes:
 
-  get "/welcome.json":
-    resp %*{"content": "This finally works!"}
+  # get "/welcome.json":
+  #   resp %*{"content": "This finally works!"}
 
-  get "/some_other_val.json":
-    resp %*{"content": "this works loading too"}
+  # get "/some_other_val.json":
+  #   resp %*{"content": "this works loading too"}
+  get "/":
+    redirect "/index.html"
 
   # CREATE
 
