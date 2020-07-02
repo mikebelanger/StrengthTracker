@@ -33,11 +33,11 @@ proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T =
 ####### CREATE ######
 #####################
 
-proc db_create*(m: Movement, table_name = "movement"): CRUDObject =
+proc db_create*(m: Movement, table = "movement"): CRUDObject =
 
     try:
 
-        RDB().table(table_name)
+        RDB().table(table)
              .insert(%*m)
 
         result.status = Complete
@@ -50,9 +50,9 @@ proc db_create*(m: Movement, table_name = "movement"): CRUDObject =
 # ####### READ ########
 # #####################
 
-proc db_read_any*[T](obj: T, table_name = "movement"): seq[T] =
+proc db_read_any*[T](obj: T, table: string): seq[T] =
     
-    var table_conn = RDB().table(table_name)
+    var table_conn = RDB().table(table)
     var columns: seq[string]
 
     for key, val in obj.fieldPairs:
@@ -162,7 +162,7 @@ if isMainModule:
                     .db_create
 
     echo query_json.convert_to(Movement)
-    echo db_read_any(Movement(area: "Upper"))
+    echo db_read_any(Movement(area: "Upper"), table = "movement")
     # echo db_read_any(Movement(plane: "*"))
 
     # echo db_read_unique(table = "movement", "plane")
