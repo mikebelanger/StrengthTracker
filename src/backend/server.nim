@@ -39,7 +39,7 @@ routes:
   get "/read_all_movements.json":
 
     render_json_for:
-      Movement().db_read_any("movement")
+      Movement(symmetry: "Bilateral").db_read(matching = Any)
 
   get "/read_distinct_movement_attributes.json":
 

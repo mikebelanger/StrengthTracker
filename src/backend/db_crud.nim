@@ -121,7 +121,7 @@ proc db_create*(movement_combo_assignment: MovementComboAssignment, table = "mov
 # ####### READ ########
 # #####################
 
-proc db_read_any*[T](obj: T, table: string): seq[T] =
+proc db_read_any*[T](obj: T, table: string, matching: SearchRequestType): RDB =
     
     var table_conn = RDB().table(table)
     var columns: seq[string]
@@ -133,14 +133,29 @@ proc db_read_any*[T](obj: T, table: string): seq[T] =
 
     table_conn.query["select"] = %*columns
 
-    # treat each json key-val pair as an AND condition with equals qualifier
-    for key, val in obj.fieldPairs:
-        
-        if val.len > 0 and val != "*":
-            table_conn = table_conn.where(key, "=", val)
+    case matching:
+        of All:
 
-    result = table_conn.get().mapIt(it.to(T.typeof))
+            # treat each json key-val pair as an AND condition with equals qualifier
+            for key, val in obj.fieldPairs:
+                
+                if val.len > 0:
+                    table_conn = table_conn.where(key, "=", val)
 
+        of Any:
+            
+            # treat each json key-val pair as an AND condition with equals qualifier
+            for key, val in obj.fieldPairs:
+                
+                if val.len > 0:
+                    table_conn = table_conn.orWhere(key, "=", val)
+
+    result = table_conn
+
+proc db_read*(m: Movement, matching: SearchRequestType): seq[Movement] =
+
+    m.db_read_any(table = "movement", matching = matching)
+     .get().mapIt(it.to(m.typeof))
 
 proc db_read_unique*(table, column_name: string): seq[string] =
 
