@@ -9,12 +9,6 @@ import json
 ###### HELPERS ######
 #####################
 
-proc any_missing_parameters(json_params: JsonNode, col: openArray[Column]): seq[string] =
-
-    result = col.filterIt(json_params.hasKey(it.name) == false or json_params{it.name}.getStr.len == 0)
-                .mapIt(it.name)
-
-
 proc filter_params(json_params: JsonNode): JsonNode =
 
     # I have to explicitely declare this json for some reason
@@ -27,25 +21,13 @@ proc filter_params(json_params: JsonNode): JsonNode =
     # for some reason, I have to explicitly return result here.  Otherwise its nil
     return result
 
-
-proc convert*(input_params: JsonNode, obj: Movement): Movement = 
+proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T = 
 
     # ensure all parameters are allowed
-    var 
-        params = input_params.filter_params
-        missing = params.any_missing_parameters(database_schema.movement_params)
+    var params = input_params.filter_params
 
-    if missing.len > 0:
-        for m in missing:
+    result = params.to(t)
 
-            echo "missing: ", m
-
-        result = Movement()
-
-    else:
-
-        result = params.to(Movement)
-    
 
 #####################
 ####### CREATE ######
@@ -64,23 +46,28 @@ proc db_create*(m: Movement, table_name = "movement"): CRUDObject =
         result = CRUDObject(status: Error, error: "Already exists: " & $m)
 
 
-
 # #####################
 # ####### READ ########
 # #####################
 
-proc db_read_any*(with: Movement, table_name = "movement", columns = database_schema.movement_params): seq[Movement] =
+proc db_read_any*[T](obj: T, table_name = "movement"): seq[T] =
     
-    var movement = RDB().table(table_name)
-    movement.query["select"]= %*columns.mapIt(it.name)
+    var table_conn = RDB().table(table_name)
+    var columns: seq[string]
+
+    for key, val in obj.fieldPairs:
+
+        columns.add(key)
+
+    table_conn.query["select"] = %*columns
 
     # treat each json key-val pair as an AND condition with equals qualifier
-    for key, val in with.fieldPairs:
+    for key, val in obj.fieldPairs:
         
         if val.len > 0 and val != "*":
-            movement = movement.where(key, "=", val)
+            table_conn = table_conn.where(key, "=", val)
 
-    result = movement.get().mapIt(it.convert(Movement()))
+    result = table_conn.get().mapIt(it.to(T.typeof))
 
 
 proc db_read_unique*(table, column_name: string): seq[string] =
@@ -88,6 +75,9 @@ proc db_read_unique*(table, column_name: string): seq[string] =
     var table_conn = RDB().table(table).select(column_name)
     result = table_conn.distinct().get().mapIt(it.getOrDefault(key = column_name).getStr)
 
+# #####################
+# ####### UPDATE ######
+# #####################
 
 if isMainModule:
 
@@ -117,7 +107,6 @@ if isMainModule:
         double_json = parseJson("""
         {
         "name": "bench press",
-        "area": "Upper",
         "area":"Lower",
         "plane": "Horizontal",
         "concentric_type": "Press",
@@ -137,7 +126,11 @@ if isMainModule:
 
         query_json = parseJson("""
         {
-        "distinct": ["plane", "concentric_type", "bogus_category", "symmetry"]        
+        "name": "split-squat",
+        "area": "Lower",
+        "plane":"Frontal",
+        "symmetry": "Bilateral",
+        "concentric_type": "Squat",
         }
         """)
     # echo more_json{"area"}.len
@@ -161,14 +154,15 @@ if isMainModule:
     #     else:
     #         echo "not supported yet"
 
-    echo double_json.convert(Movement())
+    echo double_json.convert_to(Movement)
                     .db_create
-    echo double_json.convert(Movement())
+    echo double_json.convert_to(Movement)
                     .db_create
-    echo pushup_json.convert(Movement())
+    echo pushup_json.convert_to(Movement)
                     .db_create
 
-    echo db_read_any(Movement(plane: "Horizontal"))
-    echo db_read_any(Movement(plane: "*"))
+    echo query_json.convert_to(Movement)
+    echo db_read_any(Movement(area: "Upper"))
+    # echo db_read_any(Movement(plane: "*"))
 
-    echo db_read_unique(table = "movement", "plane")
+    # echo db_read_unique(table = "movement", "plane")

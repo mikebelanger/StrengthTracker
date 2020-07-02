@@ -30,8 +30,10 @@ routes:
   post "/create_movement.json":
     
     render_json_for:
-      request.body.parseJson.convert(Movement())
+      request.body.parseJson
+                  .convert_to(Movement)
                   .db_create
+
   # READ
 
   get "/read_distinct_movement_attributes.json":
