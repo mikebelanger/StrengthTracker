@@ -36,6 +36,11 @@ routes:
 
   # READ
 
+  get "/read_all_movements.json":
+
+    render_json_for:
+      Movement().db_read_any("movement")
+
   get "/read_distinct_movement_attributes.json":
 
     render_json_for:
