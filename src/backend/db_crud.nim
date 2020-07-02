@@ -121,7 +121,7 @@ proc db_create*(movement_combo_assignment: MovementComboAssignment, table = "mov
 # ####### READ ########
 # #####################
 
-proc db_read_any*[T](obj: T, table: string, matching: SearchRequestType): RDB =
+proc db_read_any*[T](obj: T, table: string, matching = All): RDB =
     
     var table_conn = RDB().table(table)
     var columns: seq[string]
@@ -152,7 +152,7 @@ proc db_read_any*[T](obj: T, table: string, matching: SearchRequestType): RDB =
 
     result = table_conn
 
-proc db_read*(m: Movement, matching: SearchRequestType): seq[Movement] =
+proc db_read*(m: Movement, matching = All): seq[Movement] =
 
     m.db_read_any(table = "movement", matching = matching)
      .get().mapIt(it.to(m.typeof))
