@@ -3,15 +3,19 @@
 
 import jester
 import json
-import db_crud
+import database_schema
 import ../app_types
+import sequtils
+import db_crud
 
 template render_json_for(stmts: untyped) =
   try:            
     var crud = stmts
     resp %*crud
   except:
-    resp %*CRUDOBject(status: Error, error: getCurrentExceptionMsg(), content: parseJson("{}"))
+    resp %*CRUDOBject(status: Error, 
+                      error: getCurrentExceptionMsg(), 
+                      content: @[parseJson("{}")])
 
 routes:
 
@@ -21,49 +25,26 @@ routes:
   get "/some_other_val.json":
     resp %*{"content": "this works loading too"}
 
-# CREATE
+  # CREATE
 
   post "/create_movement.json":
     
     render_json_for:
-      request.body.parseJson
-                  .db_create_one(Movement)
-  
-#   post "/create_movement_combo.json":
+      request.body.parseJson.convert(Movement())
+                  .db_create
+  # READ
 
-#     render_json_for:
-#       request.body.parseJson
-#                   .to(MovementCombo)
-#                   .db_insert
-# READ
-
-  post "/read_all_movement_with":
+  get "/read_distinct_movement_attributes.json":
 
     render_json_for:
-      request.body.parseJson
-                  .db_read_some(Movement)
 
-  post "/read_distinct_movement_attributes":
-
-    render_json_for:
-      
-      let movement_attrs = %*{"distinct": ["plane","symmetry","concentric_type", "symmetry"]}
-
-      movement_attrs.db_read_some(MovementAttribute)
-#   post "/db_read_all_movements.json":
-
-#     render_json_for:
-#       db_read_all_rows_for(Movement())
-
-#   post "/read_movement_by_name.json":
-
-#     render_json_for:
-#       Movement(name: request.body.parseJson.getStr).db_read
-
-#   post "/get_movement_combo.json":
-
-#     render_json_for:
-#       MovementCombo(name: request.body.parseJson.getStr).db_read
-
-# UPDATE
-# DELETE
+      CRUDObject(status: Complete, 
+                  content: @[
+                    %*{ "plane": db_read_unique("movement", "plane"),
+                        "area": db_read_unique("movement", "area"),
+                        "concentric_type": db_read_unique("movement", "concentric_type"),
+                        "symmetry": db_read_unique("movement", "symmetry")
+                    }
+                  ])
+  # UPDATE
+  # DELETE

@@ -1,4 +1,5 @@
 import allographer/query_builder
+import allographer/schema_builder
 import ../app_types
 import sequtils
 import database_schema
@@ -8,9 +9,10 @@ import json
 ###### HELPERS ######
 #####################
 
-proc any_missing_parameters(col: openArray[string], json_pars: JsonNode): seq[string] =
+proc any_missing_parameters(json_params: JsonNode, col: openArray[Column]): seq[string] =
 
-  result = col.filterIt(json_pars.hasKey(it) == false or json_pars{it}.getStr.len == 0)
+    result = col.filterIt(json_params.hasKey(it.name) == false or json_params{it.name}.getStr.len == 0)
+                .mapIt(it.name)
 
 
 proc filter_params(json_params: JsonNode): JsonNode =
@@ -26,81 +28,66 @@ proc filter_params(json_params: JsonNode): JsonNode =
     return result
 
 
+proc convert*(input_params: JsonNode, obj: Movement): Movement = 
+
+    # ensure all parameters are allowed
+    var 
+        params = input_params.filter_params
+        missing = params.any_missing_parameters(database_schema.movement_params)
+
+    if missing.len > 0:
+        for m in missing:
+
+            echo "missing: ", m
+
+        result = Movement()
+
+    else:
+
+        result = params.to(Movement)
+    
+
 #####################
 ####### CREATE ######
 #####################
 
-proc db_create_one*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
+proc db_create*(m: Movement, table_name = "movement"): CRUDObject =
 
-    # ensure all parameters are allowed
-    let params = json_parameters.filter_params
+    try:
 
-    case schema_type:
-        of Movement:
+        RDB().table(table_name)
+             .insert(%*m)
 
-            # check schema
-            var any_missing_pars = any_missing_parameters(database_schema.movement_params, params)
+        result.status = Complete
 
-            # if there's anything missing, report it
-            if any_missing_pars.len > 0:
+    except DbError:
+        result = CRUDObject(status: Error, error: "Already exists: " & $m)
 
-                let missing_str = any_missing_pars.foldl(a & "," & b)
 
-                result = CRUDObject(status: Error, error: "Incomplete.  Missing: " & missing_str)
 
-            else:
+# #####################
+# ####### READ ########
+# #####################
 
-                try:
+proc db_read_any*(with: Movement, table_name = "movement", columns = database_schema.movement_params): seq[Movement] =
+    
+    var movement = RDB().table(table_name)
+    movement.query["select"]= %*columns.mapIt(it.name)
 
-                    RDB().table("movement")
-                         .insert(params)
+    # treat each json key-val pair as an AND condition with equals qualifier
+    for key, val in with.fieldPairs:
+        
+        if val.len > 0 and val != "*":
+            movement = movement.where(key, "=", val)
 
-                    result.status = Complete
+    result = movement.get().mapIt(it.convert(Movement()))
 
-                except DbError:
-                    result = CRUDObject(status: Error, error: "Already exists: " & $params)
 
-        else:
-            echo "not supported yet"
+proc db_read_unique*(table, column_name: string): seq[string] =
 
-#####################
-####### READ ########
-#####################
+    var table_conn = RDB().table(table).select(column_name)
+    result = table_conn.distinct().get().mapIt(it.getOrDefault(key = column_name).getStr)
 
-proc db_read_some*(json_parameters: JsonNode, schema_type: SchemaType): CRUDObject =
-
-    # filter out any unnecessary / dangereous parameters
-    let params = json_parameters.filter_params
-
-    case schema_type:
-        of Movement:
-
-            var movement = RDB().table("movement")
-                                .select("name", "area", "concentric_type", "symmetry", "plane")
-
-            # treat each json key-val pair as an AND condition with equals qualifier
-            for key, val in params.pairs:
-                movement = movement.where(key, "=", val.getStr)
-            
-            result.content = %*movement.get()
-
-        of MovementAttribute:
-            result.content = parseJson("{}")
-
-            var 
-                movement = RDB().table("movement")
-                sane_params = params["distinct"].filterIt(database_schema.movement_params.contains(it.getStr))
-                                    .mapIt(it.getStr)
-
-            # loop through json attributes
-            
-            for attr in sane_params:
-                result.content{attr}= %*movement.select(attr).distinct().get().mapIt(it{attr})
-
-        of MovementCombo, Set:
-            echo "plural"
-
-    result.status = Complete
 
 if isMainModule:
 
@@ -160,7 +147,28 @@ if isMainModule:
         # r4 = db_create(schema_type = Movement, json_parameters = double_json)
         # r5 = db_create(schema_type = Movement, json_parameters = pushup_json)
 
+
+
     # echo r4
     # echo r5
     # echo query_json.db_read_multiple(MovementAttribute)
-    echo query_json.db_read_some(MovementAttribute)
+
+    # case complete_json.kind:
+    #     of JObject:
+    #         echo complete_json.convert(Movement(), schema_parameters = database_schema.movement_params)
+    #                           .db_create(table = "movement")
+
+    #     else:
+    #         echo "not supported yet"
+
+    echo double_json.convert(Movement())
+                    .db_create
+    echo double_json.convert(Movement())
+                    .db_create
+    echo pushup_json.convert(Movement())
+                    .db_create
+
+    echo db_read_any(Movement(plane: "Horizontal"))
+    echo db_read_any(Movement(plane: "*"))
+
+    echo db_read_unique(table = "movement", "plane")
