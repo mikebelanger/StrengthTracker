@@ -12,6 +12,10 @@ var
     movement_left_blank = false
     pageMode = Welcome
     all_movements = parseJson("[]")
+    planes = parseJson("[]")
+    areas = parseJson("[]")
+    concentric_types = parseJson("[]")
+    symmetries = parseJson("[]")
 
 # template show_for(t: Seconds, stmts: untyped) = 
 #     window.setTimeout(code = stmts, pause: t)
@@ -22,10 +26,21 @@ proc switchTo(p: PageMode, cb: proc) =
     cb()
     pageMode = p
 
-proc loadMovements() =
-    ajaxPost(url = "/db_read_all_movements.json", headers = @[], data = "", proc (status: int, resp: cstring) =
-        all_movements = parseJson($resp){"content"}
-        echo all_movements)
+proc readAllMovements() =
+    ajaxGet(url = "/read_all_movements.json", headers = @[], proc (status: int, resp: cstring) =
+        all_movements = parseJson($resp))
+
+proc readDistinctMovementAttributes() =
+    ajaxGet(url = "/read_distinct_movement_attributes.json", headers = @[], proc (status: int, resp: cstring) =
+        var parsed = parseJson($resp){"content"}[0]
+        planes = parsed{"planes"}
+        areas = parsed{"areas"}
+        concentric_types = parsed{"concentric_types"}
+        symmetries = parsed{"symmetries"})
+
+proc readMovementsAndDistinctAttributes() =
+    readAllMovements()
+    readDistinctMovementAttributes()
 
 proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
@@ -35,9 +50,9 @@ proc getOptionValue(input_node_id: cstring): string =
     var select_elem = document.getElementById(input_node_id)
     for this_option in select_elem.options:
         if this_option.selected:
-            return $this_option.text
+            return $this_option.value
 
-proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_ids: seq[string]) =
+proc validate_and_submit(submit_type, name_id: cstring, option_box_ids: seq[string]) =
     # Get name of movement
     var name_elem = document.getElementById(name_id)
     var name = name_elem.value
@@ -58,24 +73,31 @@ proc validate_and_submit(submit_type: CreateType, name_id: cstring, option_box_i
         for option_id in option_box_ids:
             submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
 
-        case submit_type:
-            of CreateMovement:
-                try:
-                    discard submit_options.to(Movement)
-                except:
-                    echo getCurrentExceptionMsg()
+        echo $submit_options
+        ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
+            echo ($status, $resp)
+            
+            if status == 200:
+                readAllMovements()
+        )
 
-                ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
-                    echo ($status, $resp)
-                )
-
-                loadMovements()
 
 proc repsSliderToOutput() = 
     var repsInputElement = document.getElementById("repsInputId")
     var repsOutputElement = document.getElementById("repsOutputId")
     repsOutputElement.value = repsInputElement.value & " reps"
 
+proc optionsMenu(name, message: cstring, options: JsonNode): VNode =
+
+    return buildHtml():
+            tdiv:
+                label(`for` = name, id = name & "_container"):
+                    select(id = name):
+                        option(value = "", `selected data-default` = nil):
+                            text message
+                        for i in options.items:
+                            option(value = i.getStr):
+                                text i.getStr
 
 proc render(): VNode =
 
@@ -93,7 +115,7 @@ proc render(): VNode =
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
                                 text "Start the workout"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, loadMovements)):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readMovementsAndDistinctAttributes)):
                                 text "Look at Exercise Options"
 
                         of ManageMovements:
@@ -117,13 +139,13 @@ proc render(): VNode =
                                             td(class = "pa3 tl tl"):
                                                 text m{"name"}.getStr
                                             td(class = "pa3 tl tl"):
-                                                text m{"movement_plane"}.getStr
+                                                text m{"plane"}.getStr
                                             td(class = "pa3 tl tl"):
-                                                text m{"body_area"}.getStr
+                                                text m{"area"}.getStr
                                             td(class = "pa3 tl tl"):
-                                                text m{"movement_type"}.getStr
+                                                text m{"concentric_type"}.getStr
                                             td(class = "pa3 tl tl"):
-                                                text m{"movement_category"}.getStr
+                                                text m{"symmetry"}.getStr
 
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Add movement")
 
@@ -131,22 +153,20 @@ proc render(): VNode =
                                 input(id = "movement_name", placeholder = "Enter movement")
                                 tdiv(id = "movement_error"):
                                     if movement_left_blank:
-                                        text "Movement can't be left blank"
+                                        text "Movement name can't be left blank"
                                     else:
                                         text ""
 
                             br()
 
                             span(class = $InformationSpan):
-                                label(`for` = "movement_plane", id = "movement_plane_container"):
-                                    select(id = "movement_plane"):
-                                        option(value = "Select Movement Plane")
-                                        for movement_plane in MovementPlane.low .. MovementPlane.high:
-                                            option(value = ord(movement_plane).toCstr):
-                                                text $movement_plane
+                                optionsMenu(name = "plane", message = "Select Movement Plane", planes)
+                                optionsMenu(name = "area", message = "Select Body Area", areas)
+                                optionsMenu(name = "concentric_type", message = "Select Concentric Type", concentric_types)
+                                optionsMenu(name = "symmetry", message = "Select Symmetry", symmetries)
 
                             a(class = $BigGreenButton & " avenir tc", onclick = () => 
-                                validate_and_submit(submit_type = CreateMovement, name_id = "movement_name", option_box_ids = @["movement_plane", "body_area", "movement_type", "movement_category"])):
+                                validate_and_submit(submit_type = "/create_movement.json", name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type", "symmetry"])):
                                 text "Click to submit"
 
                             footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(Welcome)):

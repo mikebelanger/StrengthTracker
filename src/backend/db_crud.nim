@@ -24,18 +24,20 @@ proc filter_params(json_params: JsonNode): JsonNode =
     # I have to explicitely declare this json for some reason
     var result = parseJson("{}")
 
-    echo all_params
-
     for key in json_params.keys:
+
         if all_params.contains(key):
-            result{key}= %*json_params{key}
+            var val = json_params{key}.getStr
+
+            if val.len > 0:
+                result{key}= %*val
 
     # for some reason, I have to explicitly return result here.  Otherwise its nil
     echo result
     return result
 
 proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T = 
-
+    echo input_params
     # ensure all input parameters are allowed before converting to an object
     var params = input_params.filter_params
 
@@ -234,8 +236,9 @@ if isMainModule:
 
 
     # echo pushup, split_squat, workout_split_a
-    echo pushup.db_create, split_squat.db_create, workout_split_a.db_create
-    echo mc_a.db_create
+    # echo pushup.db_create, split_squat.db_create, workout_split_a.db_create
+    # echo mc_a.db_create
+    echo @["name"].contains("name")
     # for m in @[pushup, split_squat]:
     #     MovementComboAssignment(movement: m, 
     #                             movement_combo: workout_split_a).db_create

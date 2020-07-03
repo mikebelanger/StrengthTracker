@@ -39,7 +39,7 @@ routes:
   get "/read_all_movements.json":
 
     render_json_for:
-      Movement().db_read
+      Movement().db_read()
 
   get "/read_distinct_movement_attributes.json":
 
@@ -47,10 +47,10 @@ routes:
 
       CRUDObject(status: Complete, 
                   content: @[
-                    %*{ "plane": db_read_unique("movement", "plane"),
-                        "area": db_read_unique("movement", "area"),
-                        "concentric_type": db_read_unique("movement", "concentric_type"),
-                        "symmetry": db_read_unique("movement", "symmetry")
+                    %*{ "planes": db_read_unique("movement", "plane"),
+                        "areas": db_read_unique("movement", "area"),
+                        "concentric_types": db_read_unique("movement", "concentric_type"),
+                        "symmetries": db_read_unique("movement", "symmetry")
                     }
                   ])
   # UPDATE
