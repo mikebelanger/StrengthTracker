@@ -33,11 +33,9 @@ proc filter_params(json_params: JsonNode): JsonNode =
                 result{key}= %*val
 
     # for some reason, I have to explicitly return result here.  Otherwise its nil
-    echo result
     return result
 
 proc convert_to*[T](input_params: JsonNode, t: typedesc[T]): T = 
-    echo input_params
     # ensure all input parameters are allowed before converting to an object
     var params = input_params.filter_params
 
