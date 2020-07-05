@@ -27,12 +27,12 @@ proc switchTo(p: PageMode, cb: proc) =
     pageMode = p
 
 proc readAllMovements() =
-    ajaxGet(url = "/read_all_movements.json", headers = @[], proc (status: int, resp: cstring) =
+    ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
         all_movements = parseJson($resp))
 
 proc readDistinctMovementAttributes() =
-    ajaxGet(url = "/read_distinct_movement_attributes.json", headers = @[], proc (status: int, resp: cstring) =
-        var parsed = parseJson($resp){"content"}[0]
+    ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
+        var parsed = parseJson($resp)
         planes = parsed{"planes"}
         areas = parsed{"areas"}
         concentric_types = parsed{"concentric_types"}
