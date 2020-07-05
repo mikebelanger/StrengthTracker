@@ -166,7 +166,7 @@ proc render(): VNode =
                                 optionsMenu(name = "symmetry", message = "Select Symmetry", symmetries)
 
                             a(class = $BigGreenButton & " avenir tc", onclick = () => 
-                                validate_and_submit(submit_type = "/create_movement.json", name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type", "symmetry"])):
+                                validate_and_submit(submit_type = $CreateMovement, name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type", "symmetry"])):
                                 text "Click to submit"
 
                             footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(Welcome)):

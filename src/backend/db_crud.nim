@@ -96,19 +96,6 @@ proc add_any_foreign_keys(o: object, by: string): JsonNode =
 ####### CREATE ######
 #####################
 
-proc db_create*(m: Movement, table = "movement"): CRUDObject =
-
-    safely_create:
-        RDB().table(table)
-             .insert(%*m)
-
-
-proc db_create*(movement_combo: MovementCombo, table = "movement_combo"): CRUDObject =
-
-    safely_create:
-        RDB().table(table)
-             .insert(%*movement_combo)
-
 
 proc db_create*(movement_combo_assignment: MovementComboAssignment, table = "movement_combo_assignment"): CRUDObject =
     
