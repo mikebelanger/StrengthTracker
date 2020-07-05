@@ -4,9 +4,8 @@
 import json
 import ../app_types
 import allographer/query_builder
-import strutils
-import jester, strutils, asyncdispatch
-
+import jester, asyncdispatch, asyncnet
+import sequtils
 
 proc match(request: Request): Future[ResponseData] {.async.} =
     block route:
@@ -22,7 +21,18 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         redirect Index
 
                     of ReadAllMovement:
-                        resp %*{"content" : "getting move time baby!"}
+                        var all_movements = RDB().table($MovementTable).select().get()
+                        resp %*all_movements
+
+                    of ReadAllMovementAttrs:
+
+                        resp %*{
+                            "planes" : RDB().table($MovementTable).select("plane").distinct().get().mapIt(it{"plane"}),
+                            "areas" : RDB().table($MovementTable).select("area").distinct().get().mapIt(it{"area"}),
+                            "concentric_types" : RDB().table($MovementTable).select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
+                            "symmetries" : RDB().table($MovementTable).select("symmetry").distinct().get().mapIt(it{"symmetry"})
+                        }
+
 
                     else:
                         echo "Not supported yet"
@@ -32,40 +42,39 @@ proc match(request: Request): Future[ResponseData] {.async.} =
             
                 case request.pathInfo:
                     of CreateMovement:
-                    
-                        RDB().table($Movement).insert(request.body.parseJson)
+
+                        var new_movement = request.body.parseJson.to(Movement)
+                        RDB().table($MovementTable).insert(%*new_movement)
                         resp Http200, "Success"
                     
                     of CreateMovementCombo:
-                    
-                        # Create the movement combo first
-                        var combo_id = RDB().table($MovementCombo)
-                                            .insertID(request.body.parseJson)
 
-                        if request.body.parseJson.hasKey($MovementId):
-                            var ids = request.body.parseJson{$MovementId}
+                        var 
+                            new_movement_combo = request.body.parseJson.to(NewMovementComboRequest)
+                            combo_id = RDB().table($MovementComboTable)
+                                            .insertID(%*{ "name" : new_movement_combo.name})
 
-                            case ids.kind:
-                                of JArray:
-                                    
-                                    var r = RDB().table($MovementComboAssignment)
+                        # If we have enough movement ids
+                        if combo_id is Positive and new_movement_combo.movement_ids.len > 0:
+                            var assignments_table = RDB().table($MovementComboAssignmentTable)
 
-                                    # Loop through each movement
-                                    # make it a movement combo assignment row
-                                    for movement_id in ids:
-                                        r.insert(%*{ $MovementId : movement_id, 
-                                                    $MovementComboId : combo_id})
+                            for movement_id in new_movement_combo.movement_ids:
                                 
-                                    resp Http200, "Movement Combo Created Successfully"
-                            
-                                else:
-                                    
-                                    resp Http501, "Cannot use anything other than JArrays"
-                
+                                assignments_table.insert(%*{ $MovementId : movement_id, $MovementComboId : combo_id})
 
+
+                            resp Http200, "Assignments created successfully"
+
+                        else:
+
+                            resp Http501, "Either no combo id or there's no movement ids"
+
+
+            # I seem to only need GET and POST
             else:
 
                 echo "Not sure how to handle that method"
+
 
 var server = initJester(match)
 server.serve()

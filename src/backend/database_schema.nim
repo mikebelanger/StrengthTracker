@@ -29,7 +29,7 @@ if isMainModule:
 
     # # now add to db
     schema([
-        table($Movement, movement_table),
-        table($MovementCombo, movement_combo_table),
-        table($MovementComboAssignment, movement_combo_assignment_table)
+        table($MovementTable, movement_table),
+        table($MovementComboTable, movement_combo_table),
+        table($MovementComboAssignmentTable, movement_combo_assignment_table)
     ])
