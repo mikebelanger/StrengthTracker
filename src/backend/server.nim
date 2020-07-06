@@ -65,7 +65,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                         # If that went through, and we have at least one movement combo id
                         # then let's make movement assignments
-                        if combo_id and new_movement_combo_request.movement_ids.len > 0:
+                        if combo_id and new_movement_combo_request.movement_ids:
                             var 
                                 assignments_table = MovementComboAssignmentTable.db_connect
                                 combo_assignments_made: seq[int]

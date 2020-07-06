@@ -10,11 +10,15 @@ converter exists*(i: int): bool =
     i > 0
 
 converter all_good*(i: seq[int]): bool =
-    for x in i:
-        if x < 0:
-            return false
+    if i.len == 0:
+        return false
+    
+    else:
+        for x in i:
+            if x < 0:
+                return false
 
-    return true
+        return true
 
 
 # For some reason I can't override the `%*` template for tuples
