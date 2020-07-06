@@ -6,6 +6,7 @@ import ../app_types
 import allographer/query_builder
 import jester, asyncdispatch
 import sequtils
+import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
     block route:
@@ -21,16 +22,16 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         redirect Index
 
                     of ReadAllMovement:
-                        var all_movements = RDB().table($MovementTable).select().get()
+                        var all_movements = MovementTable.db_read
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
 
                         resp %*{
-                            "planes" : RDB().table($MovementTable).select("plane").distinct().get().mapIt(it{"plane"}),
-                            "areas" : RDB().table($MovementTable).select("area").distinct().get().mapIt(it{"area"}),
-                            "concentric_types" : RDB().table($MovementTable).select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
-                            "symmetries" : RDB().table($MovementTable).select("symmetry").distinct().get().mapIt(it{"symmetry"})
+                            "planes" : MovementTable.db_query.select("plane").distinct().get().mapIt(it{"plane"}),
+                            "areas" : MovementTable.db_query.select("area").distinct().get().mapIt(it{"area"}),
+                            "concentric_types" : MovementTable.db_query.select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
+                            "symmetries" : MovementTable.db_query.select("symmetry").distinct().get().mapIt(it{"symmetry"})
                         }
 
 
@@ -43,24 +44,30 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                 case request.pathInfo:
                     of CreateMovement:
 
-                        var new_movement = request.body.parseJson.to(Movement)
-                        RDB().table($MovementTable).insert(%*new_movement)
-                        resp Http200, "Success"
+                        var movement_created = MovementTable.db_create(
+                            request.body.parseJson.to(Movement)
+                        )
+                        
+                        if movement_created:
+                            resp Http200, "Success"
+                        else:
+                            resp Http501, "Failed"
                     
                     of CreateMovementCombo:
                         
                         # add row to movement combo table
                         var 
-                            new_movement_combo = request.body.parseJson.to(NewMovementComboRequest)
-                            combo_id = RDB().table($MovementComboTable)
-                                            .insertID(%*{ "name" : new_movement_combo.name})
+                            new_movement_combo_request = request.body.parseJson.to(NewMovementComboRequest)
+                            combo_id = MovementComboTable.db_create(
+                                new_movement_combo_request.movement_combo
+                            )
 
                         # If that went through, and we have at least one movement combo id
                         # then let's make movement assignments
-                        if combo_id is Positive and new_movement_combo.movement_ids.len > 0:
+                        if combo_id and new_movement_combo_request.movement_ids.len > 0:
                             var assignments_table = RDB().table($MovementComboAssignmentTable)
 
-                            for movement_id in new_movement_combo.movement_ids:
+                            for movement_id in new_movement_combo_request.movement_ids:
                                 
                                 assignments_table.insert(%*{ $MovementId : movement_id, $MovementComboId : combo_id})
 

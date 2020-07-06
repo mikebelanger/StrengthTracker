@@ -65,10 +65,14 @@ type
         concentric_type*: ConcentricType
         symmetry*: Symmetry
 
+    MovementCombo* = object
+        name*: string
+
     # Request types
     NewMovementComboRequest* = object
-        name*: string
+        movement_combo*: MovementCombo
         movement_ids*: seq[int]
+
 
 when isMainModule:
 
