@@ -68,6 +68,9 @@ type
     MovementCombo* = object
         name*: string
 
+    MovementComboAssignment* = object
+        movement_id*, movement_combo_id*: int
+
     # Request types
     NewMovementComboRequest* = object
         movement_combo*: MovementCombo
