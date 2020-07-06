@@ -136,6 +136,7 @@ proc render(): VNode =
                                 tbody(class = "lh-copy"):
                                     for m in all_movements.items:
                                         tr(class = "stripe-dark"):
+                                            input(type = "hidden", value = $m{"id"}.getInt)
                                             td(class = "pa3 tl tl"):
                                                 text m{"name"}.getStr
                                             td(class = "pa3 tl tl"):
