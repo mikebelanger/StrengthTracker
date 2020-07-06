@@ -68,6 +68,22 @@ const
             symmetry: Unilateral,
             concentric_type: Hinge,
             plane: Frontal
+        ),
+
+        Movement(
+            name: "Barbell Snatch",
+            area: Full,
+            symmetry: Bilateral,
+            concentric_type: Pull,
+            plane: MultiPlane
+        ),
+
+        Movement(
+            name: "Side Lunge Squat",
+            area: Lower,
+            symmetry: Unilateral,
+            concentric_type: Squat,
+            plane: Lateral
         )
     ]
 
