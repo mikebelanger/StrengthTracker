@@ -23,17 +23,16 @@ proc to_json*(t: tuple): JsonNode =
     for key, val in t.fieldPairs:
         result{key}= %val
 
+# convenience function for when querying an equals with an orWhere
 proc matching_any*(table: RDB, criteria: tuple): RDB =
 
     result = table
         
     for each_property, content in criteria.fieldPairs:
 
-        echo each_property
-
         result = table.orWhere(each_property, "=", $content)
 
-
+# convenience function for when querying an equals with a Where
 proc matching_all*(table: RDB, criteria: tuple): RDB =
     
     result = table
