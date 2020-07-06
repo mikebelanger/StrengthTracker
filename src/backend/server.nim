@@ -48,13 +48,15 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         resp Http200, "Success"
                     
                     of CreateMovementCombo:
-
+                        
+                        # add row to movement combo table
                         var 
                             new_movement_combo = request.body.parseJson.to(NewMovementComboRequest)
                             combo_id = RDB().table($MovementComboTable)
                                             .insertID(%*{ "name" : new_movement_combo.name})
 
-                        # If we have enough movement ids
+                        # If that went through, and we have at least one movement combo id
+                        # then let's make movement assignments
                         if combo_id is Positive and new_movement_combo.movement_ids.len > 0:
                             var assignments_table = RDB().table($MovementComboAssignmentTable)
 
