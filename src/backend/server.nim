@@ -70,6 +70,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 assignments_table = MovementComboAssignmentTable.db_connect
                                 combo_assignments_made: seq[int]
 
+                            # Create new movement assignment for each new movement id
                             for movement_id in new_movement_combo_request.movement_ids:
                                 
                                 combo_assignments_made.add(

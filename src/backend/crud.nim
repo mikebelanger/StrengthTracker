@@ -24,7 +24,7 @@ proc to_json*(t: tuple): JsonNode =
         result{key}= %val
 
 # convenience function for when querying an equals with an orWhere
-proc matching_any*(table: RDB, criteria: tuple): RDB =
+proc query_matching_any*(table: RDB, criteria: tuple): RDB =
 
     result = table
         
@@ -33,7 +33,7 @@ proc matching_any*(table: RDB, criteria: tuple): RDB =
         result = table.orWhere(each_property, "=", $content)
 
 # convenience function for when querying an equals with a Where
-proc matching_all*(table: RDB, criteria: tuple): RDB =
+proc query_matching_all*(table: RDB, criteria: tuple): RDB =
     
     result = table
 
@@ -93,12 +93,11 @@ if isMainModule:
 
     # echo y
     # echo y is Positive
-    # let 
-    #     criteria = (
-    #         symmetry: Bilateral,
-    #         concentric_type: Push, 
-    #         plane: Vertical
-    #     )
+    let 
+        criteria = (
+            symmetry: Bilateral,
+            concentric_type: Push, 
+        )
 
     #     new_vals = (
     #         name: "Wide Ring Dips",
@@ -112,7 +111,10 @@ if isMainModule:
     # MovementTable.db_connect.select("id", "name", "concentric_type")
     #                       .matching_any((id: 4)).update(new_vals.to_json)
     
-    var results = MovementTable.db_connect.matching_any(()).db_read
+    var results = MovementTable.db_connect
+                               .query_matching_all(criteria)
+                               .select("name")
+                               .db_read
     echo results
     # echo all
     # echo any.len, all.len
