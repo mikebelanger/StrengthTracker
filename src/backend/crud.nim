@@ -20,7 +20,15 @@ converter all_good*(i: seq[int]): bool =
 
         return true
 
+proc obj_to_json*(obj: object): JsonNode =
+    %*obj
 
+proc tuple_to_json*(tu: tuple): JsonNode =
+    %*tu
+
+converter movement_to_json*(m: Movement | ExistingMovement): JsonNode =
+    obj_to_json(m)
+    
 # For some reason I can't override the `%*` template for tuples
 proc to_json*(t: tuple): JsonNode =
     result = parseJson("{}")
@@ -74,9 +82,9 @@ proc db_read*(table: RDB): seq[JsonNode] =
 #### UPDATE ####
 ################
 
-proc db_update*(table: RDB, input: tuple): bool =
+proc db_update*(table: RDB, input: JsonNode): bool =
     try:
-        table.update(input.to_json)
+        table.update(input)
         return true
     except:
         echo getCurrentExceptionMsg()

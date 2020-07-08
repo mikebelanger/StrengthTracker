@@ -60,13 +60,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             existing_movement = request.body.parseJson.to(ExistingMovement)
                             existing_movement_updated = MovementTable.db_connect.query_matching_all((
                                 id: existing_movement.id
-                            )).db_update((
-                                name: existing_movement.name,
-                                area: existing_movement.area,
-                                plane: existing_movement.plane,
-                                concentric_type: existing_movement.concentric_type,
-                                symmetry: existing_movement.symmetry
-                            ))
+                            )).db_update(existing_movement)
                         
                         if existing_movement_updated:
                             resp Http200, "Movement updated successfully"
