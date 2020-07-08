@@ -25,7 +25,7 @@ const
 ##############################
 
 type
-
+    
     DataTable* = enum
         MovementTable = "movement"
         MovementComboTable = "movement_combo"
@@ -67,6 +67,7 @@ type
         area*: MovementArea
         concentric_type*: ConcentricType
         symmetry*: Symmetry
+        description*: string
 
     ExistingMovement* = object of Movement
         id*: int

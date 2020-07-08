@@ -6,13 +6,18 @@ proc is_complete*(x: object): bool =
 
     for key, val in x.fieldPairs:
 
-        var value = $val
-        if value.len == 0 or value.contains("Unspecified"):
-            return false
+        case key:
+            of "Description":
+                return true
+            
+            else:
+                var value = $val
+                if value.len == 0 or value.contains("Unspecified"):
+                    return false
 
     return true
 
-const
+let
     movements = @[
 
         ### Horizontal Upper Body
@@ -21,21 +26,24 @@ const
             area: Upper,
             symmetry: Bilateral,
             concentric_type: Push,
-            plane: Horizontal
+            plane: Horizontal,
+            description: "Hands chest-width apart.  Elbows tucked in."
         ),
         Movement(
             name: "Ring Row",
             area: Upper,
             symmetry: Bilateral,
             concentric_type: Pull,
-            plane: Horizontal
+            plane: Horizontal,
+            description: "Rings chest-width apart.  Straps hanging 30inches apart"
         ),
         Movement(
             name: "Bench Press",
             area: Upper,
             symmetry: Bilateral,
             concentric_type: Push,
-            plane: Horizontal
+            plane: Horizontal,
+            description: "For maximum bro-ness."
         ),
         
         Movement(
@@ -43,7 +51,8 @@ const
             area: Upper,
             symmetry: Bilateral,
             concentric_type: Push,
-            plane: Vertical
+            plane: Vertical,
+            description: "Straps 18 inches apart, hanging 26 inches from bar"
         ),
 
         Movement(
@@ -51,7 +60,8 @@ const
             area: Upper,
             symmetry: Bilateral,
             concentric_type: Pull,
-            plane: Vertical
+            plane: Vertical,
+            description: "Straps 28 inches apart, hanging 6 inches from the bar."
         ),
 
         Movement(
@@ -59,7 +69,8 @@ const
             area: Lower,
             symmetry: Unilateral,
             concentric_type: Squat,
-            plane: Frontal
+            plane: Frontal,
+            description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
         ),
 
         Movement(
@@ -67,7 +78,7 @@ const
             area: Lower,
             symmetry: Unilateral,
             concentric_type: Hinge,
-            plane: Frontal
+            plane: Frontal,
         ),
 
         Movement(

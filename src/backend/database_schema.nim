@@ -10,7 +10,8 @@ let
         Column().string("area"),
         Column().string("concentric_type"),
         Column().string("symmetry"),
-        Column().string("plane")
+        Column().string("plane"),
+        Column().longText("description")
     ]
 
     movement_combo_table* = [

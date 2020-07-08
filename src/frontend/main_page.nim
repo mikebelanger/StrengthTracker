@@ -47,15 +47,18 @@ proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
     return json_node[key].getStr()
 
+proc getTextValue(input_node_id: cstring): string =
+    var node = document.getElementById(input_node_id)
+    return $node.value
+
 proc getOptionValue(input_node_id: cstring): string =
     var select_elem = document.getElementById(input_node_id)
     for this_option in select_elem.options:
         if this_option.selected:
-            echo $this_option.value
             return $this_option.value
 
 
-proc create_movement(name_id: cstring, option_box_ids: seq[string]): proc () =
+proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id, description_id: cstring): proc () =
 
     result = proc () =
     
@@ -71,24 +74,27 @@ proc create_movement(name_id: cstring, option_box_ids: seq[string]): proc () =
 
             movement_left_blank = false
 
-            var submit_options = parseJson("{}")
-            submit_options.add(key = $"status", val = newJString($"Incomplete"))
-            submit_options.add(key = $"error", val = newJString($""))
-            submit_options.add(key = $"name", val = newJString($name))
-
-            for option_id in option_box_ids:
-                submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
-
-            echo "submit options", $submit_options
-            ajaxPost(url = $CreateMovement, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
-                echo ($status, $resp)
-                
-                if status == 200:
-                    readAllMovements()
+        var 
+            movement = Movement(
+                name: $name,
+                plane: parseEnum[MovementPlane](get_option_value(plane_id)),
+                area: parseEnum[MovementArea](get_option_value(area_id)),
+                concentric_type: parseEnum[ConcentricType](get_option_value(concentric_type_id)),
+                symmetry: parseEnum[Symmetry](get_option_value(symmetry_id)),
+                description: getTextValue(description_id)
             )
 
+            submit_movement = %*movement
+            
+        ajaxPost(url = $CreateMovement, headers = @[], data = $submit_movement, proc (status: int, resp: cstring) =
+            echo ($status, $resp)
+            
+            if status == 200:
+                readAllMovements()
+        )
 
-proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symmetry_id: cstring): proc () =
+
+proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symmetry_id, description_id: cstring): proc () =
 
     result = proc () =
     
@@ -103,7 +109,8 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
                 plane: parseEnum[MovementPlane](get_option_value(plane_id)),
                 area: parseEnum[MovementArea](get_option_value(area_id)),
                 concentric_type: parseEnum[ConcentricType](get_option_value(concentric_type_id)),
-                symmetry: parseEnum[Symmetry](get_option_value(symmetry_id))
+                symmetry: parseEnum[Symmetry](get_option_value(symmetry_id)),
+                description: getTextValue(description_id)
             )
 
             submit_movement = %*movement
@@ -162,6 +169,11 @@ proc render(): VNode =
                                 text "Look at Exercise Options"
 
                         of ManageMovements:
+
+                            #########################################
+                            #### VIEW/EDIT EXISTING MOVEMENTS #######
+                            #########################################
+
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Manage Movements")
                             table(class = "f6 ph3 mt0 center avenir"):
                                 thead:
@@ -174,11 +186,14 @@ proc render(): VNode =
                                     th(class = "fw6 tl pa3 bg-green tr"):
                                         text "Type"
                                     th(class = "fw6 tl pa3 bg-green tr"):
-                                        text "Category"
+                                        text "Symmetry"
+                                    th(class = "fw6 tl pa3 bg-green tr"):
+                                        text "Description"
 
                                 tbody(class = "lh-copy"):
                                     for m in all_movements.items:
                                         let 
+                                            # define IDs for submission
                                             db_id = $m{"id"}.getInt
                                             m_name = m{"name"}.getStr.toLowerAscii.replace(" ", "")
                                             m_id = m_name & "_id"
@@ -186,6 +201,7 @@ proc render(): VNode =
                                             m_area = m_name & "_area"
                                             m_concentric_type = m_name & "_concentric_type"
                                             m_symmetry = m_name & "_symmetry"
+                                            m_description = m_name & "_description"
 
 
                                         tr(class = "stripe-dark"):
@@ -200,13 +216,16 @@ proc render(): VNode =
                                             td(class = "pa3 tl tl"):
                                                 optionsMenu(name = m_symmetry, message = "", selected = m{"symmetry"}.getStr, options = symmetries)
                                             td(class = "pa3 tl tl"):
+                                                textarea(class = "pa3 tl tl", id = m_description, value = m{"description"}.getStr)
+                                            td(class = "pa3 tl tl"):
                                                 a(class = $BigGreenButton, onclick = 
                                                 update_movement(db_id = db_id,
                                                                 name_id = m_name, 
                                                                 plane_id = m_plane, 
                                                                 area_id = m_area, 
                                                                 concentric_type_id = m_concentric_type, 
-                                                                symmetry_id = m_symmetry
+                                                                symmetry_id = m_symmetry,
+                                                                description_id = m_description
                                                 )):
                                                     text "Update"
                                             # td(class = "pa3 tl tl"):
@@ -225,14 +244,23 @@ proc render(): VNode =
 
                             br()
 
+                            ################################
+                            #### CREATE NEW MOVEMENT #######
+                            ################################
+
                             span(class = $InformationSpan):
-                                optionsMenu(name = "plane", message = "Select Movement Plane", options = planes)
-                                optionsMenu(name = "area", message = "Select Body Area", options = areas)
-                                optionsMenu(name = "concentric_type", message = "Select Concentric Type", options = concentric_types)
-                                optionsMenu(name = "symmetry", message = "Select Symmetry", options = symmetries)
+                                optionsMenu(name = "plane_id", message = "Select Movement Plane", options = planes)
+                                optionsMenu(name = "area_id", message = "Select Body Area", options = areas)
+                                optionsMenu(name = "concentric_type_id", message = "Select Concentric Type", options = concentric_types)
+                                optionsMenu(name = "symmetry_id", message = "Select Symmetry", options = symmetries)
+                                textarea(class = "pa3 tl tl", id = "description_id", placeholder = "Enter description")
 
                             a(class = $BigGreenButton & " avenir tc", onclick = 
-                                create_movement(name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type","symmetry"])):
+                                create_movement(name_id = "movement_name", plane_id = "plane_id", 
+                                                                        area_id = "area_id",
+                                                                        concentric_type_id = "concentric_type_id",
+                                                                        symmetry_id = "symmetry_id",
+                                                                        description_id = "description_id")):
 
                                 text "Click to submit"
 
