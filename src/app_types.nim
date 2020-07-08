@@ -17,6 +17,9 @@ const
     CreateMovement* = "/create_movement.json"
     CreateMovementCombo* = "/create_movement_combo.json"
 
+    # Update
+    UpdateMovement* = "/update_movement.json"
+
 ##############################
 ##### APP SPECIFIC TYPES #####
 ##############################
@@ -58,12 +61,15 @@ type
         Unilateral
         Bilateral
 
-    Movement* = object
+    Movement* = object of RootObj
         name*: string
         plane*: MovementPlane
         area*: MovementArea
         concentric_type*: ConcentricType
         symmetry*: Symmetry
+
+    ExistingMovement* = object of Movement
+        id*: int
 
     MovementCombo* = object
         name*: string
@@ -71,7 +77,6 @@ type
     MovementComboAssignment* = object
         movement_id*, movement_combo_id*: int
 
-    # Request types
     NewMovementComboRequest* = object
         movement_combo*: MovementCombo
         movement_ids*: seq[int]

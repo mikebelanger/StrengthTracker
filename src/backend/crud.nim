@@ -76,11 +76,11 @@ proc db_read*(table: RDB): seq[JsonNode] =
 
 proc db_update*(table: RDB, input: tuple): bool =
     try:
-        result = table.update(input.to_json)
-        result = true
+        table.update(input.to_json)
+        return true
     except:
         echo getCurrentExceptionMsg()
-        result = false
+        return false
 
 ################
 #### DELETE ####

@@ -53,6 +53,26 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             resp Http200, "Success"
                         else:
                             resp Http501, "Failed"
+
+                    of UpdateMovement:
+                        
+                        let 
+                            existing_movement = request.body.parseJson.to(ExistingMovement)
+                            existing_movement_updated = MovementTable.db_connect.query_matching_all((
+                                id: existing_movement.id
+                            )).db_update((
+                                name: existing_movement.name,
+                                area: existing_movement.area,
+                                plane: existing_movement.plane,
+                                concentric_type: existing_movement.concentric_type,
+                                symmetry: existing_movement.symmetry
+                            ))
+                        
+                        if existing_movement_updated:
+                            resp Http200, "Movement updated successfully"
+                        else:
+                            resp Http501, "Error updating movement"
+
                     
                     of CreateMovementCombo:
                         

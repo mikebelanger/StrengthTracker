@@ -3,6 +3,7 @@ import karax/[kdom, kajax]
 import json, sugar
 import ../app_types
 import components
+import strutils, sequtils
 
 type PageMode = enum Welcome, Workout, ManageMovements
 var 
@@ -50,31 +51,64 @@ proc getOptionValue(input_node_id: cstring): string =
     var select_elem = document.getElementById(input_node_id)
     for this_option in select_elem.options:
         if this_option.selected:
+            echo $this_option.value
             return $this_option.value
 
-proc validate_and_submit(submit_type, name_id: cstring, option_box_ids: seq[string]) =
-    # Get name of movement
-    var name_elem = document.getElementById(name_id)
-    var name = name_elem.value
 
-    if name.isNil or name == "": 
+proc create_movement(name_id: cstring, option_box_ids: seq[string]): proc () =
 
-        movement_left_blank = true
+    result = proc () =
+    
+        var 
+            name_elem = document.getElementById(name_id)
+            name = name_elem.value
 
-    else:
+        if name.isNil or name == "":
 
-        movement_left_blank = false
+            movement_left_blank = true
 
-        var submit_options = parseJson("{}")
-        submit_options.add(key = $"status", val = newJString($"Incomplete"))
-        submit_options.add(key = $"error", val = newJString($""))
-        submit_options.add(key = $"name", val = newJString($name))
+        else:
 
-        for option_id in option_box_ids:
-            submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
+            movement_left_blank = false
 
-        echo $submit_options
-        ajaxPost(url = $submit_type, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
+            var submit_options = parseJson("{}")
+            submit_options.add(key = $"status", val = newJString($"Incomplete"))
+            submit_options.add(key = $"error", val = newJString($""))
+            submit_options.add(key = $"name", val = newJString($name))
+
+            for option_id in option_box_ids:
+                submit_options.add(key = $option_id, val = newJString(getOptionValue(option_id)))
+
+            echo "submit options", $submit_options
+            ajaxPost(url = $CreateMovement, headers = @[], data = $submit_options, proc (status: int, resp: cstring) =
+                echo ($status, $resp)
+                
+                if status == 200:
+                    readAllMovements()
+            )
+
+
+proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symmetry_id: cstring): proc () =
+
+    result = proc () =
+    
+        var 
+            name_elem = document.getElementById(name_id)
+            name = name_elem.value
+
+        var 
+            movement = ExistingMovement(
+                id: db_id.parseInt,
+                name: $name,
+                plane: parseEnum[MovementPlane](get_option_value(plane_id)),
+                area: parseEnum[MovementArea](get_option_value(area_id)),
+                concentric_type: parseEnum[ConcentricType](get_option_value(concentric_type_id)),
+                symmetry: parseEnum[Symmetry](get_option_value(symmetry_id))
+            )
+
+            submit_movement = %*movement
+
+        ajaxPost(url = $UpdateMovement, headers = @[], data = $submit_movement, proc (status: int, resp: cstring) =
             echo ($status, $resp)
             
             if status == 200:
@@ -82,22 +116,31 @@ proc validate_and_submit(submit_type, name_id: cstring, option_box_ids: seq[stri
         )
 
 
+
 proc repsSliderToOutput() = 
     var repsInputElement = document.getElementById("repsInputId")
     var repsOutputElement = document.getElementById("repsOutputId")
     repsOutputElement.value = repsInputElement.value & " reps"
 
-proc optionsMenu(name, message: cstring, options: JsonNode): VNode =
+proc optionsMenu(name, message: cstring, selected = "", options: JsonNode): VNode =
+
+    var non_selected_options = options.filterIt(it.getStr != selected)
 
     return buildHtml():
             tdiv:
                 label(`for` = name, id = name & "_container"):
                     select(id = name):
-                        option(value = "", `selected data-default` = nil):
-                            text message
-                        for i in options.items:
-                            option(value = i.getStr):
-                                text i.getStr
+                        if message.len > 0:
+                            option(value = ""):
+                                text message
+                        else:
+                            option(value = selected, selected = "selected"):
+                                text selected
+                        
+                        for other_option in non_selected_options:
+                            option(value = other_option.getStr):
+                                text other_option.getStr
+
 
 proc render(): VNode =
 
@@ -135,18 +178,40 @@ proc render(): VNode =
 
                                 tbody(class = "lh-copy"):
                                     for m in all_movements.items:
+                                        let 
+                                            db_id = $m{"id"}.getInt
+                                            m_name = m{"name"}.getStr.toLowerAscii.replace(" ", "")
+                                            m_id = m_name & "_id"
+                                            m_plane = m_name & "_plane"
+                                            m_area = m_name & "_area"
+                                            m_concentric_type = m_name & "_concentric_type"
+                                            m_symmetry = m_name & "_symmetry"
+
+
                                         tr(class = "stripe-dark"):
-                                            input(type = "hidden", value = $m{"id"}.getInt)
+                                            input(type = "hidden", value = db_id, id = m_id)
+                                            input(class = "pa3 tl tl", id = m_name, value = m{"name"}.getStr)
                                             td(class = "pa3 tl tl"):
-                                                text m{"name"}.getStr
+                                                optionsMenu(name = m_plane, message = "", selected = m{"plane"}.getStr, options = planes)
                                             td(class = "pa3 tl tl"):
-                                                text m{"plane"}.getStr
+                                                optionsMenu(name = m_area, message = "", selected = m{"area"}.getStr, options = areas)
                                             td(class = "pa3 tl tl"):
-                                                text m{"area"}.getStr
+                                                optionsMenu(name = m_concentric_type, message = "", selected = m{"concentric_type"}.getStr, options = concentric_types)
                                             td(class = "pa3 tl tl"):
-                                                text m{"concentric_type"}.getStr
+                                                optionsMenu(name = m_symmetry, message = "", selected = m{"symmetry"}.getStr, options = symmetries)
                                             td(class = "pa3 tl tl"):
-                                                text m{"symmetry"}.getStr
+                                                a(class = $BigGreenButton, onclick = 
+                                                update_movement(db_id = db_id,
+                                                                name_id = m_name, 
+                                                                plane_id = m_plane, 
+                                                                area_id = m_area, 
+                                                                concentric_type_id = m_concentric_type, 
+                                                                symmetry_id = m_symmetry
+                                                )):
+                                                    text "Update"
+                                            td(class = "pa3 tl tl"):
+                                                a(class = $BigRedButton):
+                                                    text "Delete"
 
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Add movement")
 
@@ -161,13 +226,14 @@ proc render(): VNode =
                             br()
 
                             span(class = $InformationSpan):
-                                optionsMenu(name = "plane", message = "Select Movement Plane", planes)
-                                optionsMenu(name = "area", message = "Select Body Area", areas)
-                                optionsMenu(name = "concentric_type", message = "Select Concentric Type", concentric_types)
-                                optionsMenu(name = "symmetry", message = "Select Symmetry", symmetries)
+                                optionsMenu(name = "plane", message = "Select Movement Plane", options = planes)
+                                optionsMenu(name = "area", message = "Select Body Area", options = areas)
+                                optionsMenu(name = "concentric_type", message = "Select Concentric Type", options = concentric_types)
+                                optionsMenu(name = "symmetry", message = "Select Symmetry", options = symmetries)
 
-                            a(class = $BigGreenButton & " avenir tc", onclick = () => 
-                                validate_and_submit(submit_type = $CreateMovement, name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type", "symmetry"])):
+                            a(class = $BigGreenButton & " avenir tc", onclick = 
+                                create_movement(name_id = "movement_name", option_box_ids = @["plane", "area", "concentric_type","symmetry"])):
+
                                 text "Click to submit"
 
                             footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(Welcome)):
