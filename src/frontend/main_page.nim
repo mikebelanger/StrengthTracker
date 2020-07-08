@@ -209,9 +209,9 @@ proc render(): VNode =
                                                                 symmetry_id = m_symmetry
                                                 )):
                                                     text "Update"
-                                            td(class = "pa3 tl tl"):
-                                                a(class = $BigRedButton):
-                                                    text "Delete"
+                                            # td(class = "pa3 tl tl"):
+                                            #     a(class = $BigRedButton):
+                                            #         text "Delete"
 
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Add movement")
 
