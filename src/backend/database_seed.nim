@@ -1,21 +1,7 @@
 import allographer/query_builder
 import ../app_types
 import json, strutils, sequtils
-
-proc is_complete*(x: object): bool =
-
-    for key, val in x.fieldPairs:
-
-        case key:
-            of "Description":
-                return true
-            
-            else:
-                var value = $val
-                if value.len == 0 or value.contains("Unspecified"):
-                    return false
-
-    return true
+import crud
 
 let
     movements = @[

@@ -1,6 +1,7 @@
 import ../app_types
 import allographer/query_builder
 import json
+import sequtils, strutils
 
 #################
 #### HELPERS ####
@@ -19,6 +20,13 @@ converter all_good*(i: seq[int]): bool =
                 return false
 
         return true
+
+converter all_true*(i: seq[bool]): bool =
+    if i.len == 0:
+        return false
+    
+    else:
+        return i.allIt(it)
 
 proc obj_to_json*(obj: object): JsonNode =
     %*obj
@@ -57,6 +65,30 @@ proc query_matching_all*(table: RDB, criteria: tuple): RDB =
 proc db_connect*(data_table: DataTable): RDB =
     RDB().table($data_table).select()
 
+proc interpretJson*(input: string): seq[JsonNode] =
+    result = @[]
+    try:
+        let j = parseJson(input)
+        result.add(j)
+    except:
+        echo getCurrentExceptionMsg()
+
+proc is_complete*(x: object): bool =
+
+    for key, val in x.fieldPairs:
+
+        case key:
+            of "Description":
+                return true
+            
+            else:
+                var value = $val
+                if value.len == 0 or value.contains("Unspecified"):
+                    return false
+
+    return true
+
+
 ################
 #### CREATE ####
 ################
@@ -94,39 +126,45 @@ proc db_update*(table: RDB, input: JsonNode): bool =
 #### DELETE ####
 ################
 
-if isMainModule:
+# if isMainModule:
 
-    # let x = MovementTable.db_read
+#     let 
+#         criteria = (
+#             symmetry: Bilateral,
+#             concentric_type: Push, 
+#         )
 
-    # for i in x:
-    #     echo $x
-
-    # let y = x.len
-
-    # echo y
-    # echo y is Positive
-    let 
-        criteria = (
-            symmetry: Bilateral,
-            concentric_type: Push, 
-        )
-
-    #     new_vals = (
-    #         name: "Wide Ring Dips",
-    #         area: Upper
-    #     )
-
-    #     any = MovementTable.db_connect
-    #                        .matching_all(criteria)
-    #                        .db_read
-                                    
-    # MovementTable.db_connect.select("id", "name", "concentric_type")
-    #                       .matching_any((id: 4)).update(new_vals.to_json)
     
-    var results = MovementTable.db_connect
-                               .query_matching_all(criteria)
-                               .select("name")
-                               .db_read
-    echo results
+#     var results = MovementTable.db_connect
+#                                .query_matching_all(criteria)
+#                                .select("name")
+#                                .db_read
+#     echo results
     # echo all
     # echo any.len, all.len
+
+if isMainModule:
+
+    let x = """
+    { "stuf : erger' }
+    """
+
+    let y = """
+    { "name" : "my fantastic movement" }
+    """
+
+    let movements_completed = 
+    
+        y.interpretJson.map(proc (j: JsonNode): Movement =
+            try:
+                result = j.to(Movement)
+            except:
+                echo getCurrentExceptionMsg()
+        ).mapIt(it.is_complete)
+
+    if movements_completed:
+        echo "they work!"
+    else:
+        echo "They don't work"
+
+    echo "but I got to the end of the program!!!"

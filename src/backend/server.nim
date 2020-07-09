@@ -45,11 +45,30 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                 case request.pathInfo:
                     of CreateMovement:
 
-                        var movement_created = MovementTable.db_connect.db_create(
-                            request.body.parseJson.to(Movement)
-                        )
-                        
-                        if movement_created:
+                        echo "Create movement"
+
+                        let 
+                            create_movement_worked = 
+
+                                # interpret json into sequence
+                                request.body.interpretJson.map(proc (j: JsonNode): Movement =
+
+                                    # convert each one into a Movement
+                                    try:
+                                        result = j.to(Movement)
+                                    except:
+                                        echo getCurrentExceptionMsg()
+
+                                )
+                                # only insert ones that are complete
+                                .filterIt(it.is_complete)
+                                .map(proc (m: Movement): int =
+
+                                    result = MovementTable.db_connect.db_create(m)
+
+                                )
+                            
+                        if create_movement_worked:
                             resp Http200, "Success"
                         else:
                             resp Http501, "Failed"

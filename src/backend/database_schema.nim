@@ -3,6 +3,11 @@ import allographer/schema_builder
 import ../app_types
 
 let
+    user_table = [
+        Column().increments("id"),
+        Column().string("name").unique(),
+        Column().string("email").unique()
+    ]
     movement_table = [
         Column().increments("id"),
         Column().string("name").unique(),
@@ -29,6 +34,7 @@ if isMainModule:
 
     # # now add to db
     schema([
+        table($UserTable, movement_table),
         table($MovementTable, movement_table),
         table($MovementComboTable, movement_combo_table),
         table($MovementComboAssignmentTable, movement_combo_assignment_table)
