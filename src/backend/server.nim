@@ -45,8 +45,6 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                 case request.pathInfo:
                     of CreateMovement:
 
-                        echo "Create movement"
-
                         let 
                             create_movement_worked = 
 
@@ -76,12 +74,30 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of UpdateMovement:
                         
                         let 
-                            existing_movement = request.body.parseJson.to(ExistingMovement)
-                            existing_movement_updated = MovementTable.db_connect.query_matching_all((
-                                id: existing_movement.id
-                            )).db_update(existing_movement)
+                            existing_movements_updated = 
+                                
+                                # Interpret incoming JSON, convert to an existing movement
+                                request.body.interpretJson.map(proc (jnode: JsonNode): ExistingMovement =
+                                    try:
+                                        result = jnode.to(ExistingMovement)
+                                    except:
+                                        echo getCurrentExceptionMsg()
+                            
+                                )
+                                .filterIt(it.is_complete)
+                                .map(proc (em: ExistingMovement): bool =
+
+                                    # Should only be one movement with the id, but just in case
+                                    MovementTable.db_connect.query_matching_all((
+
+                                        id: em.id
+                                    
+                                    # finally commit to db
+                                    )).db_update(em)
+                                )
+    
                         
-                        if existing_movement_updated:
+                        if existing_movements_updated:
                             resp Http200, "Movement updated successfully"
                         else:
                             resp Http501, "Error updating movement"
