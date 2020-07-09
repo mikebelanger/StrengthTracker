@@ -1,5 +1,3 @@
-import json
-
 ##################
 #### ROUTES ######
 ##################
@@ -25,8 +23,15 @@ const
 ##############################
 
 type
+    User* = object of RootObj
+        name*: string
+        email*: string
     
+    ExistingUser* = object of User
+        id*: int
+
     DataTable* = enum
+        UserTable = "user"
         MovementTable = "movement"
         MovementComboTable = "movement_combo"
         MovementComboAssignmentTable = "movement_combo_assignment"
@@ -81,20 +86,3 @@ type
     NewMovementComboRequest* = object
         movement_combo*: MovementCombo
         movement_ids*: seq[int]
-
-
-when isMainModule:
-
-    var sample = parseJson("""
-    [
-    "movement_ids" : ["a", 2, 4],
-    "name" : "some_name",
-    "*" : "%",
-    "hostile" : "parameters"
-    }
-    """)
-
-    var new_movement = sample.to(NewMovementComboRequest)
-    echo new_movement
-    for new_id in new_movement.movement_ids:
-        echo new_id
