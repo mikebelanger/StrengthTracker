@@ -49,7 +49,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             create_movement_worked = 
 
                                 # interpret json into sequence
-                                request.body.interpretJson.map(proc (j: JsonNode): Movement =
+                                request.body.interpretJson
+                                .map(proc (j: JsonNode): Movement =
 
                                     # convert each one into a Movement
                                     try:
