@@ -80,12 +80,15 @@ type
     ExistingMovement* = object of Movement
         id*: int
 
-    MovementCombo* = object
+    MovementCombo* = object of RootObj
         name*: string
+    
+    ExistingMovementCombo* = object of MovementCombo
+        id*: int
 
     MovementComboAssignment* = object
         movement_id*, movement_combo_id*: int
 
     NewMovementComboRequest* = object
-        movement_combo*: MovementCombo
+        movement_combo*: ExistingMovementCombo
         movement_ids*: seq[int]

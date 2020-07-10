@@ -125,37 +125,66 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         
                         # add row to movement combo table
                         var 
-                            new_movement_combo_request = request.body.parseJson.to(NewMovementComboRequest)
-                            combo_id = MovementComboTable.db_connect.db_create(
-                                new_movement_combo_request.movement_combo
-                            )
+                            movement_combos_assigned = 
+                                request.body.interpretJson
+                                .map(proc (j: JsonNode): NewMovementComboRequest =
 
-                        # If that went through, and we have at least one movement combo id
-                        # then let's make movement assignments
-                        if combo_id and new_movement_combo_request.movement_ids:
-                            var 
-                                assignments_table = MovementComboAssignmentTable.db_connect
-                                combo_assignments_made: seq[int]
+                                    try:
+                                        result = j.to(NewMovementComboRequest)
+                                    except:
+                                        echo getCurrentExceptionMsg()
 
-                            # Create new movement assignment for each new movement id
-                            for movement_id in new_movement_combo_request.movement_ids:
-                                
-                                combo_assignments_made.add(
-                                    assignments_table.db_create(
-                                        MovementComboAssignment(
-                                            movement_id : movement_id, 
-                                            movement_combo_id : combo_id
+                                # commit our new movement combo to the database, and return the object with its db id
+                                ).map(proc (nmcr: NewMovementComboRequest): NewMovementComboRequest =
+
+                                    try:
+                                        let emc = ExistingMovementCombo(
+                                                name: nmcr.movement_combo.name,
+                                                id: MovementComboTable.db_connect.db_create(
+                                                    nmcr.movement_combo
+                                                )
+                                            )
+                                        
+                                        result = NewMovementComboRequest(
+                                            movement_combo: emc,
+                                            movement_ids: nmcr.movement_ids
                                         )
-                                    )
+
+                                    except:
+                                        echo getCurrentExceptionMsg()
+
+                                # assign our movements to this new movement combo through the MovementComboAssignment table
+                                ).map(proc (nmcr: NewMovementComboRequest): bool =
+
+                                    var 
+                                        assignments_table = MovementComboAssignmentTable.db_connect
+                                        assignments_created: seq[int]
+
+                                    for movement_id in nmcr.movement_ids:
+                                    
+                                        assignments_created.add(
+                                            try:
+                                                assignments_table.db_create(
+                                                    MovementComboAssignment(
+                                                        movement_id : movement_id, 
+                                                        movement_combo_id : nmcr.movement_combo.id
+                                                    )
+                                                )
+                                            except:
+                                                echo getCurrentExceptionMsg()
+                                                -1
+                                        )
+
+                                    result = assignments_created.allIt(it > 0)
                                 )
 
-                            if combo_assignments_made:
+                        if movement_combos_assigned:
 
-                                resp Http200, "Assignments created successfully"
+                            resp Http200, "Assignments created successfully"
 
-                            else:
+                        else:
 
-                                resp Http501, "Either no combo id or there's no movement ids"
+                            resp Http501, "Either no combo id or there's no movement ids"
 
 
             # I seem to only need GET and POST
