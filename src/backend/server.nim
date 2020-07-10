@@ -73,21 +73,22 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                     of ReadMovement:
 
-                        let existing_movement = 
-                            request.body.interpretJson
-                            .map(proc (j: JsonNode): int =
-                                
-                                try:
-                                    result = j{"id"}.getInt
-                                except:
-                                    echo getCurrentExceptionMsg()
+                        let 
+                            movement_table = MovementTable.db_connect
+                            existing_movement = 
+                                request.body.interpretJson
+                                .map(proc (j: JsonNode): int =
+                                    
+                                    try:
+                                        result = j{"id"}.getInt
+                                    except:
+                                        echo getCurrentExceptionMsg()
 
-                            ).map(proc(id: int): JsonNode =
+                                ).map(proc(id: int): JsonNode =
 
-                                result = MovementTable.db_connect
-                                                        .where("id", "=", id)
-                                                        .first
-                            )
+                                    result = movement_table.where("id", "=", id)
+                                                           .first
+                                )
 
 
                         case existing_movement.len:
@@ -99,10 +100,12 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of UpdateMovement:
                         
                         let 
+                            movement_table = MovementTable.db_connect
                             existing_movements_updated = 
                                 
                                 # Interpret incoming JSON, convert to an existing movement
-                                request.body.interpretJson.map(proc (jnode: JsonNode): ExistingMovement =
+                                request.body.interpretJson
+                                .map(proc (jnode: JsonNode): ExistingMovement =
                                     try:
                                         result = jnode.to(ExistingMovement)
                                     except:
@@ -113,12 +116,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 .map(proc (em: ExistingMovement): bool =
 
                                     # Should only be one movement with the id, but just in case
-                                    MovementTable.db_connect.query_matching_all((
-
-                                        id: em.id
-                                    
-                                    # finally commit to db
-                                    )).db_update(em)
+                                    result = movement_table.where("id", "=", em.id)
+                                                           .db_update(em)
                                 )
     
                         
