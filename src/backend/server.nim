@@ -74,12 +74,19 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of ReadMovement:
 
                         let existing_movement = 
-                            request.body.interpretJson.map(proc (j: JsonNode): JsonNode =
+                            request.body.interpretJson
+                            .map(proc (j: JsonNode): int =
                                 
-                                if j.hasKey("id"):
-                                    result = MovementTable.db_connect
-                                                          .where("id", "=", j{"id"}.getInt)
-                                                          .first
+                                try:
+                                    result = j{"id"}.getInt
+                                except:
+                                    echo getCurrentExceptionMsg()
+
+                            ).map(proc(id: int): JsonNode =
+
+                                result = MovementTable.db_connect
+                                                        .where("id", "=", id)
+                                                        .first
                             )
 
 
@@ -87,7 +94,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             of 0:
                                 resp Http501, "nothing found"
                             else:
-                                resp %*existing_movement[0]
+                                resp existing_movement[0]
 
                     of UpdateMovement:
                         
