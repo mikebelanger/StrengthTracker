@@ -27,10 +27,35 @@ proc switchTo(p: PageMode, cb: proc) =
     cb()
     pageMode = p
 
+proc readMovement(id: int) =
+    var submit_data = %*{"id": id}
+
+    ajaxPost(url = $ReadMovement, headers = @[], data = $submit_data, proc (status: int, resp: cstring) =
+        case status:
+            of 200:
+                var json_movement = parseJson($resp)
+
+                # basically reconstruct the array based on what needs changing
+                var new_movements = parseJson("[]")
+
+                for i, movement in all_movements.getElems:
+
+                    if movement{"id"} == json_movement{"id"}:
+                        new_movements.add(json_movement)
+                    else:
+                        new_movements.add(movement)
+
+                all_movements = new_movements
+
+            else:
+                echo "unexpected response: ", status
+               
+    )
+
 proc readAllMovements() =
     ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
         all_movements = parseJson($resp))
-
+    
 proc readDistinctMovementAttributes() =
     ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
         var parsed = parseJson($resp)
@@ -119,7 +144,7 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
             echo ($status, $resp)
             
             if status == 200:
-                readAllMovements()
+                readMovement(id = movement.id)
         )
 
 

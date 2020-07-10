@@ -71,6 +71,24 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         else:
                             resp Http501, "Failed"
 
+                    of ReadMovement:
+
+                        let existing_movement = 
+                            request.body.interpretJson.map(proc (j: JsonNode): JsonNode =
+                                
+                                if j.hasKey("id"):
+                                    result = MovementTable.db_connect
+                                                          .where("id", "=", j{"id"}.getInt)
+                                                          .first
+                            )
+
+
+                        case existing_movement.len:
+                            of 0:
+                                resp Http501, "nothing found"
+                            else:
+                                resp %*existing_movement[0]
+
                     of UpdateMovement:
                         
                         let 

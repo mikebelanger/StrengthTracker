@@ -14,6 +14,9 @@ const
     # Create
     CreateMovement* = "/create_movement.json"
     CreateMovementCombo* = "/create_movement_combo.json"
+    
+    # Read
+    ReadMovement* = "/read_movement.json"
 
     # Update
     UpdateMovement* = "/update_movement.json"
