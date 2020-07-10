@@ -1,43 +1,16 @@
-##################
-#### ROUTES ######
-##################
-
-const
-    # GET
-    Home* = "/"
-    Index* = "/index.html"        
-    ReadAllMovement* = "/read_all_movements.json"
-    ReadAllMovementAttrs* = "/read_distinct_movement_attributes.json"
-
-    # POST
-
-    # Create
-    CreateMovement* = "/create_movement.json"
-    CreateMovementCombo* = "/create_movement_combo.json"
-    
-    # Read
-    ReadMovement* = "/read_movement.json"
-
-    # Update
-    UpdateMovement* = "/update_movement.json"
+import times
 
 ##############################
 ##### APP SPECIFIC TYPES #####
 ##############################
 
 type
-    User* = object of RootObj
+    NewUser* = object of RootObj
         name*: string
         email*: string
     
-    ExistingUser* = object of User
+    ExistingUser* = object of NewUser
         id*: int
-
-    DataTable* = enum
-        UserTable = "user"
-        MovementTable = "movement"
-        MovementComboTable = "movement_combo"
-        MovementComboAssignmentTable = "movement_combo_assignment"
 
     ForeignKey* = enum
         MovementId = "movement_id"
@@ -69,7 +42,7 @@ type
         Unilateral
         Bilateral
 
-    Movement* = object of RootObj
+    NewMovement* = object of RootObj
         name*: string
         plane*: MovementPlane
         area*: MovementArea
@@ -77,13 +50,13 @@ type
         symmetry*: Symmetry
         description*: string
 
-    ExistingMovement* = object of Movement
+    ExistingMovement* = object of NewMovement
         id*: int
 
-    MovementCombo* = object of RootObj
+    NewMovementCombo* = object of RootObj
         name*: string
     
-    ExistingMovementCombo* = object of MovementCombo
+    ExistingMovementCombo* = object of NewMovementCombo
         id*: int
 
     MovementComboAssignment* = object
@@ -92,3 +65,31 @@ type
     NewMovementComboRequest* = object
         movement_combo*: ExistingMovementCombo
         movement_ids*: seq[int]
+
+    IntensityUnits* = enum
+        UnspecifiedIntensityUnit
+        Pounds
+        Kilograms
+        PercentageOfOneRepMax
+
+    Intensity* = object
+        quantity*: float32
+        intensity*: IntensityUnits
+
+    Routine* = object
+        name*: string
+        user*: NewUser
+
+    Session* = object
+        date*: DateTime
+        routine*: Routine
+ 
+    Set* = object
+        movement*: ExistingMovement
+        movement_combo*: ExistingMovementCombo
+        reps*: int
+        tempo*: string
+        intensity*: Intensity
+        session*: Session
+        duration*: Duration
+        order*: int

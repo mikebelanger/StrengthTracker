@@ -1,6 +1,16 @@
 import db_sqlite
 import allographer/schema_builder
-import ../app_types
+
+type
+    DataTable* = enum
+        UserTable = "user"
+        MovementTable = "movement"
+        MovementComboTable = "movement_combo"
+        MovementComboAssignmentTable = "movement_combo_assignment"
+        IntensityTable = "intensity"
+        RoutineTable = "routine"
+        SessionTable = "session"
+        SetTable = "set"
 
 let
     user_table = [

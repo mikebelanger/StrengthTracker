@@ -2,7 +2,7 @@
 # uses this file as the main entry point of the application.
 
 import json
-import ../app_types
+import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
 import sequtils
@@ -50,18 +50,18 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 # interpret json into sequence
                                 request.body.interpretJson
-                                .map(proc (j: JsonNode): Movement =
+                                .map(proc (j: JsonNode): NewMovement =
 
                                     # convert each one into a Movement
                                     try:
-                                        result = j.to(Movement)
+                                        result = j.to(NewMovement)
                                     except:
                                         echo getCurrentExceptionMsg()
 
                                 )
                                 # only insert ones that are complete
                                 .filterIt(it.is_complete)
-                                .map(proc (m: Movement): int =
+                                .map(proc (m: NewMovement): int =
 
                                     result = MovementTable.db_connect.db_create(m)
 

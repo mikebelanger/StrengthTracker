@@ -1,4 +1,4 @@
-import ../app_types
+import ../app_types, database_schema
 import allographer/query_builder
 import json
 import sequtils, strutils
@@ -34,7 +34,7 @@ proc obj_to_json*(obj: object): JsonNode =
 proc tuple_to_json*(tu: tuple): JsonNode =
     %*tu
 
-converter movement_to_json*(m: Movement | ExistingMovement): JsonNode =
+converter movement_to_json*(m: NewMovement | ExistingMovement): JsonNode =
     obj_to_json(m)
     
 # For some reason I can't override the `%*` template for tuples
@@ -155,9 +155,9 @@ if isMainModule:
 
     let movements_completed = 
     
-        y.interpretJson.map(proc (j: JsonNode): Movement =
+        y.interpretJson.map(proc (j: JsonNode): NewMovement =
             try:
-                result = j.to(Movement)
+                result = j.to(NewMovement)
             except:
                 echo getCurrentExceptionMsg()
         ).mapIt(it.is_complete)

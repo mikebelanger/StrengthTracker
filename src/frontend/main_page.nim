@@ -1,7 +1,7 @@
 include karax/prelude
 import karax/[kdom, kajax]
 import json, sugar
-import ../app_types
+import ../app_types, ../app_routes
 import components
 import strutils, sequtils
 
@@ -96,7 +96,7 @@ proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id
             movement_left_blank = false
 
         var 
-            movement = Movement(
+            movement = NewMovement(
                 name: $name,
                 plane: parseEnum[MovementPlane](get_option_value(plane_id)),
                 area: parseEnum[MovementArea](get_option_value(area_id)),
