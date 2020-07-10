@@ -1,9 +1,5 @@
 import times
 
-##############################
-##### APP SPECIFIC TYPES #####
-##############################
-
 type
     NewUser* = object of RootObj
         name*: string
