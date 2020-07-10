@@ -12,11 +12,11 @@ var
     return_button: cstring = "click here for more stuff"
     movement_left_blank = false
     pageMode = Welcome
-    all_movements = parseJson("[]")
-    planes = parseJson("[]")
-    areas = parseJson("[]")
-    concentric_types = parseJson("[]")
-    symmetries = parseJson("[]")
+    all_movements: seq[ExistingMovement]
+    planes: seq[string]
+    areas: seq[string]
+    concentric_types: seq[string]
+    symmetries: seq[string]
 
 # template show_for(t: Seconds, stmts: untyped) = 
 #     window.setTimeout(code = stmts, pause: t)
@@ -33,19 +33,12 @@ proc readMovement(id: int) =
     ajaxPost(url = $ReadMovement, headers = @[], data = $submit_data, proc (status: int, resp: cstring) =
         case status:
             of 200:
-                var json_movement = parseJson($resp)
+                var new_movement = parseJson($resp).to(ExistingMovement)
 
-                # basically reconstruct the array based on what needs changing
-                var new_movements = parseJson("[]")
+                for i, movement in all_movements:
 
-                for i, movement in all_movements.getElems:
-
-                    if movement{"id"} == json_movement{"id"}:
-                        new_movements.add(json_movement)
-                    else:
-                        new_movements.add(movement)
-
-                all_movements = new_movements
+                    if movement.id == new_movement.id:
+                        all_movements[i] = new_movement
 
             else:
                 echo "unexpected response: ", status
@@ -54,15 +47,18 @@ proc readMovement(id: int) =
 
 proc readAllMovements() =
     ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
-        all_movements = parseJson($resp))
+        all_movements = parseJson($resp).mapIt(it.to(ExistingMovement))
+    )
     
 proc readDistinctMovementAttributes() =
     ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
         var parsed = parseJson($resp)
-        planes = parsed{"planes"}
-        areas = parsed{"areas"}
-        concentric_types = parsed{"concentric_types"}
-        symmetries = parsed{"symmetries"})
+
+        planes = parsed{"planes"}.getElems.mapIt(it.str)
+        areas = parsed{"areas"}.getElems.mapIt(it.str)
+        concentric_types = parsed{"concentric_types"}.getElems.mapIt(it.str)
+        symmetries = parsed{"symmetries"}.getElems.mapIt(it.str)
+    )
 
 proc readMovementsAndDistinctAttributes() =
     readAllMovements()
@@ -154,9 +150,7 @@ proc repsSliderToOutput() =
     var repsOutputElement = document.getElementById("repsOutputId")
     repsOutputElement.value = repsInputElement.value & " reps"
 
-proc optionsMenu(name, message: cstring, selected = "", options: JsonNode): VNode =
-
-    var non_selected_options = options.filterIt(it.getStr != selected)
+proc optionsMenu(name, message: cstring, selected = "", options: seq[string]): VNode =
 
     return buildHtml():
             tdiv:
@@ -165,13 +159,14 @@ proc optionsMenu(name, message: cstring, selected = "", options: JsonNode): VNod
                         if message.len > 0:
                             option(value = ""):
                                 text message
-                        else:
-                            option(value = selected, selected = "selected"):
-                                text selected
                         
-                        for other_option in non_selected_options:
-                            option(value = other_option.getStr):
-                                text other_option.getStr
+                        for option in options:
+                            if option == selected:
+                                option(value = selected, selected = "selected"):
+                                    text selected
+                            else:
+                                option(value = option):
+                                    text option
 
 
 proc render(): VNode =
@@ -216,11 +211,11 @@ proc render(): VNode =
                                         text "Description"
 
                                 tbody(class = "lh-copy"):
-                                    for m in all_movements.items:
+                                    for m in all_movements:
                                         let 
                                             # define IDs for submission
-                                            db_id = $m{"id"}.getInt
-                                            m_name = m{"name"}.getStr.toLowerAscii.replace(" ", "")
+                                            db_id = $m.id
+                                            m_name = m.name.toLowerAscii.replace(" ", "")
                                             m_id = m_name & "_id"
                                             m_plane = m_name & "_plane"
                                             m_area = m_name & "_area"
@@ -231,17 +226,17 @@ proc render(): VNode =
 
                                         tr(class = "stripe-dark"):
                                             input(type = "hidden", value = db_id, id = m_id)
-                                            input(class = "pa3 tl tl", id = m_name, value = m{"name"}.getStr)
+                                            input(class = "pa3 tl tl", id = m_name, value = m.name)
                                             td(class = "pa3 tl tl"):
-                                                optionsMenu(name = m_plane, message = "", selected = m{"plane"}.getStr, options = planes)
+                                                optionsMenu(name = m_plane, message = "", selected = $m.plane, options = planes)
                                             td(class = "pa3 tl tl"):
-                                                optionsMenu(name = m_area, message = "", selected = m{"area"}.getStr, options = areas)
+                                                optionsMenu(name = m_area, message = "", selected = $m.area, options = areas)
                                             td(class = "pa3 tl tl"):
-                                                optionsMenu(name = m_concentric_type, message = "", selected = m{"concentric_type"}.getStr, options = concentric_types)
+                                                optionsMenu(name = m_concentric_type, message = "", selected = $m.concentric_type, options = concentric_types)
                                             td(class = "pa3 tl tl"):
-                                                optionsMenu(name = m_symmetry, message = "", selected = m{"symmetry"}.getStr, options = symmetries)
+                                                optionsMenu(name = m_symmetry, message = "", selected = $m.symmetry, options = symmetries)
                                             td(class = "pa3 tl tl"):
-                                                textarea(class = "pa3 tl tl", id = m_description, value = m{"description"}.getStr)
+                                                textarea(class = "pa3 tl tl", id = m_description, value = $m.description)
                                             td(class = "pa3 tl tl"):
                                                 a(class = $BigGreenButton, onclick = 
                                                 update_movement(db_id = db_id,
