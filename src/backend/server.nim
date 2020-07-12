@@ -91,11 +91,9 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 .mapIt(it.convert_to(ExistingMovement))
                                 .map(proc (em: ExistingMovement): bool =
 
-                                    echo em
-                                    return true 
                                     # Should only be one movement with the id, but just in case
-                                    # result = movement_table.where("id", "=", em.id)
-                                    #                        .db_update(%*em)
+                                    result = movement_table.where("id", "=", em.id)
+                                                           .db_update(%*em)
                                 )
     
                         
@@ -123,13 +121,22 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                             resp Http501, "Either no combo id or there's no movement ids"
 
-                    # of CreateMovementComboAssignment:
+                    of CreateMovementComboAssignment:
 
-                    #     let
-                    #         combo_assignment_creation =
+                        let
+                            combo_assignment_creation =
                                 
-                    #             request.body.interpretJson
-                    #             .mapIt(it.convert_to(NewMovementComboAssignment))
+                                request.body.interpretJson
+                                .mapIt(it.convert_to(NewMovementComboAssignment))
+                                .mapIt(it.db_create)
+
+                        if combo_assignment_creation.worked:
+
+                            resp Http200, "Assignment made"
+                        
+                        else:
+
+                            resp Http501, "Error creating assignment"
 
 
             # I seem to only need GET and POST
