@@ -37,9 +37,6 @@ proc all_true*(i: seq[bool]): bool =
 proc obj_to_json*(obj: object): JsonNode =
     %*obj
 
-proc tuple_to_json*(tu: tuple): JsonNode =
-    %*tu
-
 proc movement_to_json*(m: NewMovement | ExistingMovement): JsonNode =
     obj_to_json(m)
     
@@ -104,19 +101,41 @@ proc db_create*(table: RDB, obj: object): int =
     result = table.insertID(%*obj)
 
 
+proc db_create*(nm: NewMovement): ExistingMovement =
+
+    let movement_table = MovementTable.db_connect
+    var em = ExistingMovement(
+            name: nm.name,
+            plane: nm.plane,
+            area: nm.area,
+            concentric_type: nm.concentric_type,
+            symmetry: nm.symmetry,
+            description: nm.description
+        )
+
+    try:
+        em.id = movement_table.db_create(nm)
+
+    except:
+        echo getCurrentExceptionMsg()
+
+    return em
+
+
 proc db_create*(nmc: NewMovementCombo): ExistingMovementCombo =
 
     let movement_combo_table = MovementComboTable.db_connect
-    var result = ExistingMovementCombo(
+    var emc = ExistingMovementCombo(
             name: nmc.name
         )
 
     try:
-        result.id = movement_combo_table.db_create(nmc)
+        emc.id = movement_combo_table.db_create(nmc)
 
     except:
         echo getCurrentExceptionMsg()
     
+    return emc
 
 proc db_create*(nmca: NewMovementComboAssignment): ExistingMovementComboAssignment =
     
@@ -127,11 +146,12 @@ proc db_create*(nmca: NewMovementComboAssignment): ExistingMovementComboAssignme
     var emca = ExistingMovementComboAssignment(movement: nmca.movement, movement_combo: nmca.movement_combo)
     
     try:
-        result = emca
-        result.id = movement_combo_assignment_table.db_create(emca)
+        emca.id = movement_combo_assignment_table.insertID(to_insert.to_json)
 
     except:
         echo getCurrentExceptionMsg()
+
+    return emca
 
 ################
 ##### READ #####

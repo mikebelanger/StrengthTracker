@@ -132,7 +132,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         
                         # add row to movement combo table
                         var 
-                            movement_combo_created = 
+                            movement_combo_creation = 
 
                                 request.body.interpretJson
                                 .map(proc (j: JsonNode): NewMovementCombo =
@@ -145,7 +145,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 # commit our new movement combo to the database, and return the object with its db id
                                 ).map(db_create)
 
-                        if movement_combo_created.worked:
+                        if movement_combo_creation.worked:
 
                             resp Http200, "Assignments created successfully"
 

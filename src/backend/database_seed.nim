@@ -42,24 +42,6 @@ let
         ),
 
         NewMovement(
-            name: "Ring Pullup",
-            area: Upper,
-            symmetry: Bilateral,
-            concentric_type: Pull,
-            plane: Vertical,
-            description: "Straps 28 inches apart, hanging 6 inches from the bar."
-        ),
-
-        NewMovement(
-            name: "Bulgarian Split Squat",
-            area: Lower,
-            symmetry: Unilateral,
-            concentric_type: Squat,
-            plane: Frontal,
-            description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
-        ),
-
-        NewMovement(
             name: "One-armed Kettlebell Swing",
             area: Lower,
             symmetry: Unilateral,
@@ -92,12 +74,37 @@ let
         )
     ]
 
-    movement_combo = NewMovementCombo()
+    ring_pullup = NewMovement(
+        name: "Ring Pullup",
+        area: Upper,
+        symmetry: Bilateral,
+        concentric_type: Pull,
+        plane: Vertical,
+        description: "Straps 28 inches apart, hanging 6 inches from the bar."
+    ).db_create
 
-    combos = [
-        NewMovementComboRequest(
-            movement_combo: "Pull-up + B. Split Squat",
-            movement_combo_ids: [5, 6]
+    split_squat = NewMovement(
+        name: "Bulgarian Split Squat",
+        area: Lower,
+        symmetry: Unilateral,
+        concentric_type: Squat,
+        plane: Frontal,
+        description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
+    ).db_create
+
+    movement_combo = NewMovementCombo(
+        name: "Pull-up + Split Squat Combo"
+    ).db_create
+
+    assignments = [
+        NewMovementComboAssignment(
+            movement_combo: movement_combo,
+            movement: ring_pullup
+        ),
+
+        NewMovementComboAssignment(
+            movement_combo: movement_combo,
+            movement: split_squat
         )
     ]
 
@@ -109,3 +116,8 @@ if isMainModule:
     movement_table.insert(
         movements.filterIt(it.is_complete).mapIt(%*it)
     )
+
+    echo ring_pullup, split_squat
+
+    for assi in assignments:
+        discard assi.db_create
