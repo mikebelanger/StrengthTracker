@@ -10,17 +10,6 @@ import sequtils, strutils
 proc exists*(i: int): bool =
     i > 0
 
-proc all_good*(i: seq[int]): bool =
-    if i.len == 0:
-        return false
-    
-    else:
-        for x in i:
-            if x < 0:
-                return false
-
-        return true
-
 proc worked*(i: seq[ExistingMovement | ExistingMovementCombo | ExistingMovementComboAssignment]): bool =
     if i.len == 0:
         return false
@@ -30,19 +19,9 @@ proc worked*(i: seq[ExistingMovement | ExistingMovementCombo | ExistingMovementC
 
     return true
 
-proc all_true*(i: seq[bool]): bool =
-    if i.len == 0:
-        return false
-    
-    else:
-        return i.allIt(it)
-
 proc obj_to_json*(obj: object): JsonNode =
     %*obj
 
-proc movement_to_json*(m: NewMovement | ExistingMovement): JsonNode =
-    obj_to_json(m)
-    
 # For some reason I can't override the `%*` template for tuples
 proc to_json*(t: tuple): JsonNode =
     result = parseJson("{}")
@@ -221,7 +200,7 @@ if isMainModule:
                 echo getCurrentExceptionMsg()
         ).mapIt(it.is_complete)
 
-    if movements_completed.all_true:
+    if movements_completed.allIt(it):
         echo "they work!"
     else:
         echo "They don't work"

@@ -27,12 +27,13 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
+                        let movement_table = MovementTable.db_connect
 
                         resp %*{
-                            "planes" : MovementTable.db_connect.select("plane").distinct().get().mapIt(it{"plane"}),
-                            "areas" : MovementTable.db_connect.select("area").distinct().get().mapIt(it{"area"}),
-                            "concentric_types" : MovementTable.db_connect.select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
-                            "symmetries" : MovementTable.db_connect.select("symmetry").distinct().get().mapIt(it{"symmetry"})
+                            "planes" : movement_table.select("plane").distinct().get().mapIt(it{"plane"}),
+                            "areas" : movement_table.select("area").distinct().get().mapIt(it{"area"}),
+                            "concentric_types" : movement_table.select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
+                            "symmetries" : movement_table.select("symmetry").distinct().get().mapIt(it{"symmetry"})
                         }
 
 
@@ -46,7 +47,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of CreateMovement:
 
                         let 
-                            create_movement_worked = 
+                            movement_creation = 
 
                                 # interpret json into sequence
                                 request.body.interpretJson
@@ -61,13 +62,9 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 )
                                 # only insert ones that are complete
                                 .filterIt(it.is_complete)
-                                .map(proc (m: NewMovement): int =
-
-                                    result = MovementTable.db_connect.db_create(m)
-
-                                )
+                                .map(db_create)
                             
-                        if create_movement_worked.all_good:
+                        if movement_creation.worked:
                             resp Http200, "Success"
                         else:
                             resp Http501, "Failed"
