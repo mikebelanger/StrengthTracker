@@ -27,15 +27,16 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
-                        let movement_table = MovementTable.db_connect
+                        let 
+                            movement_table = MovementTable.db_connect
+                            attributes = @["plane", "area", "concentric_type", "symmetry"]
 
-                        resp %*{
-                            "planes" : movement_table.select("plane").distinct().get().mapIt(it{"plane"}),
-                            "areas" : movement_table.select("area").distinct().get().mapIt(it{"area"}),
-                            "concentric_types" : movement_table.select("concentric_type").distinct().get().mapIt(it{"concentric_type"}),
-                            "symmetries" : movement_table.select("symmetry").distinct().get().mapIt(it{"symmetry"})
-                        }
+                        var response = parseJson("{}")
 
+                        for attr in attributes:
+                            response{"all_" & attr} = %*movement_table.select(attr).distinct().get().mapIt(it{attr})
+
+                        resp response
 
                     else:
                         echo "Not supported yet"

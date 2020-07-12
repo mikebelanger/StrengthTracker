@@ -54,10 +54,10 @@ proc readDistinctMovementAttributes() =
     ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
         var parsed = parseJson($resp)
 
-        planes = parsed{"planes"}.getElems.mapIt(it.str)
-        areas = parsed{"areas"}.getElems.mapIt(it.str)
-        concentric_types = parsed{"concentric_types"}.getElems.mapIt(it.str)
-        symmetries = parsed{"symmetries"}.getElems.mapIt(it.str)
+        planes = parsed{"all_plane"}.getElems.mapIt(it.str)
+        areas = parsed{"all_area"}.getElems.mapIt(it.str)
+        concentric_types = parsed{"all_concentric_type"}.getElems.mapIt(it.str)
+        symmetries = parsed{"all_symmetry"}.getElems.mapIt(it.str)
     )
 
 proc readMovementsAndDistinctAttributes() =
