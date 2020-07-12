@@ -10,6 +10,7 @@ const
     # Create
     CreateMovement* = "/create_movement.json"
     CreateMovementCombo* = "/create_movement_combo.json"
+    CreateMovementComboAssignment* = "/create_movement_combo_assignment.json"
     
     # Read
     ReadMovement* = "/read_movement.json"

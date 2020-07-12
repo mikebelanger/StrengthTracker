@@ -51,16 +51,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 # interpret json into sequence
                                 request.body.interpretJson
-                                .map(proc (j: JsonNode): NewMovement =
-
-                                    # convert each one into a Movement
-                                    try:
-                                        result = j.to(NewMovement)
-                                    except:
-                                        echo getCurrentExceptionMsg()
-
-                                )
-                                # only insert ones that are complete
+                                .mapIt(it.convert_to(NewMovement))
                                 .filterIt(it.is_complete)
                                 .map(db_create)
                             
@@ -75,14 +66,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             movement_table = MovementTable.db_connect
                             existing_movement = 
                                 request.body.interpretJson
-                                .map(proc (j: JsonNode): int =
-                                    
-                                    try:
-                                        result = j{"id"}.getInt
-                                    except:
-                                        echo getCurrentExceptionMsg()
-
-                                ).map(proc(id: int): JsonNode =
+                                .mapIt(it.get_id)
+                                .map(proc(id: int): JsonNode =
 
                                     result = movement_table.where("id", "=", id)
                                                            .first
@@ -96,26 +81,21 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 resp existing_movement[0]
 
                     of UpdateMovement:
-                        
+
                         let 
                             movement_table = MovementTable.db_connect
                             existing_movements_updated = 
                                 
                                 # Interpret incoming JSON, convert to an existing movement
                                 request.body.interpretJson
-                                .map(proc (jnode: JsonNode): ExistingMovement =
-                                    try:
-                                        result = jnode.to(ExistingMovement)
-                                    except:
-                                        echo getCurrentExceptionMsg()
-                            
-                                )
-                                .filterIt(it.is_complete)
+                                .mapIt(it.convert_to(ExistingMovement))
                                 .map(proc (em: ExistingMovement): bool =
 
+                                    echo em
+                                    return true 
                                     # Should only be one movement with the id, but just in case
-                                    result = movement_table.where("id", "=", em.id)
-                                                           .db_update(em.obj_to_json)
+                                    # result = movement_table.where("id", "=", em.id)
+                                    #                        .db_update(%*em)
                                 )
     
                         
@@ -132,15 +112,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             movement_combo_creation = 
 
                                 request.body.interpretJson
-                                .map(proc (j: JsonNode): NewMovementCombo =
-
-                                    try:
-                                        result = j.to(NewMovementCombo)
-                                    except:
-                                        echo getCurrentExceptionMsg()
-
-                                # commit our new movement combo to the database, and return the object with its db id
-                                ).map(db_create)
+                                .mapIt(it.convert_to(NewMovementCombo))
+                                .mapIt(it.db_create)
 
                         if movement_combo_creation.worked:
 
@@ -149,6 +122,14 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         else:
 
                             resp Http501, "Either no combo id or there's no movement ids"
+
+                    # of CreateMovementComboAssignment:
+
+                    #     let
+                    #         combo_assignment_creation =
+                                
+                    #             request.body.interpretJson
+                    #             .mapIt(it.convert_to(NewMovementComboAssignment))
 
 
             # I seem to only need GET and POST

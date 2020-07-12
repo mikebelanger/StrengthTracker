@@ -73,6 +73,21 @@ proc is_complete*(x: object): bool =
 
     return true
 
+proc convert_to*(j: JsonNode, t: typedesc): object =
+    try:
+        result = j.to(t)
+    except:
+        echo getCurrentExceptionMsg()
+
+    return result
+
+proc get_id*(j: JsonNode): int =
+    try:
+        result = j{"id"}.getInt
+    except:
+        echo getCurrentExceptionMsg()
+    
+    return result
 
 ################
 #### CREATE ####
