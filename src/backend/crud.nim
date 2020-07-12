@@ -21,8 +21,11 @@ proc all_good*(i: seq[int]): bool =
 
         return true
 
-proc worked*[T](i: seq[T]): bool =
+proc worked*(i: seq[ExistingMovement | ExistingMovementCombo | ExistingMovementComboAssignment]): bool =
     if i.len == 0:
+        return false
+
+    elif i.anyIt(it.id <= 0):
         return false
 
     return true
