@@ -7,10 +7,10 @@ import sequtils, strutils
 #### HELPERS ####
 #################
 
-converter exists*(i: int): bool =
+proc exists*(i: int): bool =
     i > 0
 
-converter all_good*(i: seq[int]): bool =
+proc all_good*(i: seq[int]): bool =
     if i.len == 0:
         return false
     
@@ -21,7 +21,13 @@ converter all_good*(i: seq[int]): bool =
 
         return true
 
-converter all_true*(i: seq[bool]): bool =
+proc worked*[T](i: seq[T]): bool =
+    if i.len == 0:
+        return false
+
+    return true
+
+proc all_true*(i: seq[bool]): bool =
     if i.len == 0:
         return false
     
@@ -34,7 +40,7 @@ proc obj_to_json*(obj: object): JsonNode =
 proc tuple_to_json*(tu: tuple): JsonNode =
     %*tu
 
-converter movement_to_json*(m: NewMovement | ExistingMovement): JsonNode =
+proc movement_to_json*(m: NewMovement | ExistingMovement): JsonNode =
     obj_to_json(m)
     
 # For some reason I can't override the `%*` template for tuples
@@ -97,6 +103,36 @@ proc db_create*(table: RDB, obj: object): int =
 
     result = table.insertID(%*obj)
 
+
+proc db_create*(nmc: NewMovementCombo): ExistingMovementCombo =
+
+    let movement_combo_table = MovementComboTable.db_connect
+    var result = ExistingMovementCombo(
+            name: nmc.name
+        )
+
+    try:
+        result.id = movement_combo_table.db_create(nmc)
+
+    except:
+        echo getCurrentExceptionMsg()
+    
+
+proc db_create*(nmca: NewMovementComboAssignment): ExistingMovementComboAssignment =
+    
+    let 
+        movement_combo_assignment_table = MovementComboAssignmentTable.db_connect
+        to_insert = (movement_id: nmca.movement.id, movement_combo_id: nmca.movement_combo.id)
+    
+    var emca = ExistingMovementComboAssignment(movement: nmca.movement, movement_combo: nmca.movement_combo)
+    
+    try:
+        result = emca
+        result.id = movement_combo_assignment_table.db_create(emca)
+
+    except:
+        echo getCurrentExceptionMsg()
+
 ################
 ##### READ #####
 ################
@@ -117,10 +153,10 @@ proc db_read*(table: RDB): seq[JsonNode] =
 proc db_update*(table: RDB, input: JsonNode): bool =
     try:
         table.update(input)
-        return true
+        result = true
     except:
         echo getCurrentExceptionMsg()
-        return false
+        result = false
 
 ################
 #### DELETE ####
@@ -162,7 +198,7 @@ if isMainModule:
                 echo getCurrentExceptionMsg()
         ).mapIt(it.is_complete)
 
-    if movements_completed:
+    if movements_completed.all_true:
         echo "they work!"
     else:
         echo "They don't work"

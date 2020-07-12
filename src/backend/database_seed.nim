@@ -1,5 +1,5 @@
 import allographer/query_builder
-import ../app_types
+import ../app_types, database_schema
 import json, strutils, sequtils
 import crud
 
@@ -7,7 +7,7 @@ let
     movements = @[
 
         ### Horizontal Upper Body
-        Movement(
+        NewMovement(
             name: "Push-up",
             area: Upper,
             symmetry: Bilateral,
@@ -15,7 +15,7 @@ let
             plane: Horizontal,
             description: "Hands chest-width apart.  Elbows tucked in."
         ),
-        Movement(
+        NewMovement(
             name: "Ring Row",
             area: Upper,
             symmetry: Bilateral,
@@ -23,7 +23,7 @@ let
             plane: Horizontal,
             description: "Rings chest-width apart.  Straps hanging 30inches apart"
         ),
-        Movement(
+        NewMovement(
             name: "Bench Press",
             area: Upper,
             symmetry: Bilateral,
@@ -32,7 +32,7 @@ let
             description: "For maximum bro-ness."
         ),
         
-        Movement(
+        NewMovement(
             name: "Ring Dip",
             area: Upper,
             symmetry: Bilateral,
@@ -41,7 +41,7 @@ let
             description: "Straps 18 inches apart, hanging 26 inches from bar"
         ),
 
-        Movement(
+        NewMovement(
             name: "Ring Pullup",
             area: Upper,
             symmetry: Bilateral,
@@ -50,7 +50,7 @@ let
             description: "Straps 28 inches apart, hanging 6 inches from the bar."
         ),
 
-        Movement(
+        NewMovement(
             name: "Bulgarian Split Squat",
             area: Lower,
             symmetry: Unilateral,
@@ -59,7 +59,7 @@ let
             description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
         ),
 
-        Movement(
+        NewMovement(
             name: "One-armed Kettlebell Swing",
             area: Lower,
             symmetry: Unilateral,
@@ -67,7 +67,7 @@ let
             plane: Frontal,
         ),
 
-        Movement(
+        NewMovement(
             name: "Barbell Snatch",
             area: Full,
             symmetry: Bilateral,
@@ -75,7 +75,7 @@ let
             plane: MultiPlane
         ),
 
-        Movement(
+        NewMovement(
             name: "Side Lunge Squat",
             area: Lower,
             symmetry: Unilateral,
@@ -84,6 +84,22 @@ let
         )
     ]
 
+    #### Users
+    users = [
+        NewUser(
+            name: "Mike",
+            email: "mikejamesbelanger@gmail.com"
+        )
+    ]
+
+    movement_combo = NewMovementCombo()
+
+    combos = [
+        NewMovementComboRequest(
+            movement_combo: "Pull-up + B. Split Squat",
+            movement_combo_ids: [5, 6]
+        )
+    ]
 
 
 if isMainModule:

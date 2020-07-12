@@ -55,12 +55,12 @@ type
     ExistingMovementCombo* = object of NewMovementCombo
         id*: int
 
-    MovementComboAssignment* = object
-        movement_id*, movement_combo_id*: int
-
-    NewMovementComboRequest* = object
+    NewMovementComboAssignment* = object of RootObj
+        movement*: ExistingMovement
         movement_combo*: ExistingMovementCombo
-        movement_ids*: seq[int]
+
+    ExistingMovementComboAssignment* = object of NewMovementComboAssignment
+        id*: int
 
     IntensityUnits* = enum
         UnspecifiedIntensityUnit
