@@ -111,13 +111,21 @@ let
 
 if isMainModule:
 
-    var movement_table = RDB().table($MovementTable)
+    try:
+        var movement_table = RDB().table($MovementTable)
 
-    movement_table.insert(
-        movements.filterIt(it.is_complete).mapIt(%*it)
-    )
+        movement_table.insert(
+            movements.filterIt(it.is_complete).mapIt(%*it)
+        )
 
-    echo ring_pullup, split_squat
+        echo ring_pullup, split_squat
 
-    for assi in assignments:
-        discard assi.db_create
+        for assi in assignments:
+            discard assi.db_create
+
+    except:
+        echo getCurrentExceptionMsg()
+
+    
+    for u in users:
+        discard u.db_create

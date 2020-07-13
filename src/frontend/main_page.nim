@@ -5,14 +5,15 @@ import ../app_types, ../app_routes
 import components
 import strutils, sequtils
 
-type PageMode = enum Welcome, Workout, ManageMovements
-var 
+type PageMode = enum Login, UserMainPage, Workout, ManageMovements
+var
     page_loaded: bool
     app_state: cstring
     return_button: cstring = "click here for more stuff"
     movement_left_blank = false
-    pageMode = Welcome
+    pageMode = Login
     all_movements: seq[ExistingMovement]
+    all_users = @[ExistingUser(name: "Another user", email: "anotheruser@email.com")]
     planes: seq[string]
     areas: seq[string]
     concentric_types: seq[string]
@@ -26,6 +27,23 @@ proc switchTo(p: PageMode) =
 proc switchTo(p: PageMode, cb: proc) =
     cb()
     pageMode = p
+
+proc read_all_users() =
+    echo "read_all_users getting called"
+             
+    ajaxGet(url = $ReadAllUsers, headers = @[], proc(status: int, resp: cstring) =
+        case status:
+            of 200:
+                try:
+                    var users = parseJson($resp).mapIt(it.to(ExistingUser))
+                    all_users.add(users)
+
+                except Exception as e:
+                    echo "read_all_users error: ", e.msg
+
+            else:
+                echo "unhandled code: ", status
+    )
 
 proc readMovement(id: int) =
     var submit_data = %*{"id": id}
@@ -95,24 +113,24 @@ proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id
 
             movement_left_blank = false
 
-        var 
-            movement = NewMovement(
-                name: $name,
-                plane: parseEnum[MovementPlane](get_option_value(plane_id)),
-                area: parseEnum[MovementArea](get_option_value(area_id)),
-                concentric_type: parseEnum[ConcentricType](get_option_value(concentric_type_id)),
-                symmetry: parseEnum[Symmetry](get_option_value(symmetry_id)),
-                description: getTextValue(description_id)
-            )
+            var 
+                movement = NewMovement(
+                    name: $name,
+                    plane: parseEnum[MovementPlane](get_option_value(plane_id)),
+                    area: parseEnum[MovementArea](get_option_value(area_id)),
+                    concentric_type: parseEnum[ConcentricType](get_option_value(concentric_type_id)),
+                    symmetry: parseEnum[Symmetry](get_option_value(symmetry_id)),
+                    description: getTextValue(description_id)
+                )
 
-            submit_movement = %*movement
-            
-        ajaxPost(url = $CreateMovement, headers = @[], data = $submit_movement, proc (status: int, resp: cstring) =
-            echo ($status, $resp)
-            
-            if status == 200:
-                readAllMovements()
-        )
+                submit_movement = %*movement
+                
+            ajaxPost(url = $CreateMovement, headers = @[], data = $submit_movement, proc (status: int, resp: cstring) =
+                echo ($status, $resp)
+                
+                if status == 200:
+                    readAllMovements()
+            )
 
 
 proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symmetry_id, description_id: cstring): proc () =
@@ -122,8 +140,6 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
         var 
             name_elem = document.getElementById(name_id)
             name = name_elem.value
-
-        var 
             movement = ExistingMovement(
                 id: db_id.parseInt,
                 name: $name,
@@ -142,7 +158,6 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
             if status == 200:
                 readMovement(id = movement.id)
         )
-
 
 
 proc repsSliderToOutput() = 
@@ -170,7 +185,7 @@ proc optionsMenu(name, message: cstring, selected = "", options: seq[string]): V
 
 
 proc render(): VNode =
-
+    
     if window.location.pathname == "/index.html" or window.location.pathname == "":
         result = 
             buildHtml():
@@ -178,8 +193,15 @@ proc render(): VNode =
                     createSpan(span = StatusSpan, header = InformationHeader, padding = 1, message = "Currently not logged in.")
 
                     case pageMode:
-                        of Welcome:
-                            
+                        of Login:
+                            span(class = "ph2 tc m5"):      
+                                for user in all_users:
+                                    a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10"):
+                                        text user.name
+
+
+                        of UserMainPage:
+
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome!")
                         
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
@@ -284,7 +306,7 @@ proc render(): VNode =
 
                                 text "Click to submit"
 
-                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(Welcome)):
+                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
                                 text "Back to main page"
 
  
@@ -326,7 +348,7 @@ proc render(): VNode =
                                 a(class = $BigBlueButton & " avenir tc pb3"):
                                     text "Done Combo"
 
-                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(Welcome)):
+                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
                                 text "Back to main page"
 
     elif window.location.pathname == "/workout.html":
@@ -343,4 +365,6 @@ proc render(): VNode =
     
     return result
 
+
 setRenderer render
+read_all_users()

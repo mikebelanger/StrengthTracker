@@ -38,6 +38,14 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                         resp response
 
+                    of ReadAllUsers:
+
+                        var all_users = UserTable.db_connect
+                                                 .db_read
+
+                        echo all_users
+                        resp %*all_users
+
                     else:
                         echo "Not supported yet"
 

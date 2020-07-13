@@ -97,6 +97,22 @@ proc db_create*(table: RDB, obj: object): int =
 
     result = table.insertID(%*obj)
 
+proc db_create*(u: NewUser): ExistingUser =
+
+    let user_table = UserTable.db_connect
+
+    var ut = ExistingUser(
+        name: u.name,
+        email: u.email
+    )
+
+    try:
+        ut.id = user_table.db_create(u)
+
+    except:
+        echo getCurrentExceptionMsg()
+
+    return ut
 
 proc db_create*(nm: NewMovement): ExistingMovement =
 

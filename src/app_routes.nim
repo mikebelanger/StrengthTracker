@@ -1,7 +1,9 @@
 const
     # GET
     Home* = "/"
-    Index* = "/index.html"        
+    LoginPage* = "/login_page.html"
+    Index* = "/index.html"
+    ReadAllUsers* = "/read_all_users.json" 
     ReadAllMovement* = "/read_all_movements.json"
     ReadAllMovementAttrs* = "/read_distinct_movement_attributes.json"
 
