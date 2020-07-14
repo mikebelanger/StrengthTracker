@@ -141,6 +141,7 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
             name_elem = document.getElementById(name_id)
             name = name_elem.value
             movement = Movement(
+                kind: Existing,
                 id: db_id.parseInt,
                 name: $name,
                 plane: parseEnum[MovementPlane](get_option_value(plane_id)),
