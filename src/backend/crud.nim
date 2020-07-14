@@ -186,8 +186,16 @@ proc db_update*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[JsonNo
 
                    )
 
+proc db_read_from_id*(id: int, into: DataTable): JsonNode =
+    result = parseJson("{}")
 
+    try:
+        result = into.db_connect.find(id)
 
+    except:
+        echo getCurrentExceptionMsg()
+
+    return result
 # if isMainModule:
 
 #     let 
@@ -351,8 +359,10 @@ if isMainModule:
                                                     result = 
                                                         MovementComboAssignment(kind: Existing,
                                                                                 id: j{"id"}.getInt,
-                                                                                movement: MovementTable.db_connect.where("id", "=", j{"movement_id"}.getInt).first.to_existing(Movement),
-                                                                                movement_combo: MovementComboTable.db_connect.where("id", "=", j{"movement_combo_id"}.getInt).first.to_existing(MovementCombo)
+                                                                                movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
+                                                                                                                .to_existing(Movement),
+                                                                                movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
+                                                                                                                .to_existing(MovementCombo)
                                                         )
                                                 )
     # echo "test", test
