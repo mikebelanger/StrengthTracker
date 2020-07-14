@@ -1,17 +1,6 @@
 import times
 
 type
-    NewUser* = object of RootObj
-        name*: string
-        email*: string
-    
-    ExistingUser* = object of NewUser
-        id*: int
-
-    ForeignKey* = enum
-        MovementId = "movement_id"
-        MovementComboId = "movement_combo_id"
-
     MovementPlane* = enum
         UnspecifiedPlane
         Horizontal
@@ -38,7 +27,20 @@ type
         Unilateral
         Bilateral
 
-    NewMovement* = object of RootObj
+    EntryKind* = enum
+        New
+        Existing
+
+    Entry* = object of RootObj
+        case kind*: EntryKind
+            of New: nil
+            of Existing: id*: Positive
+
+    User* = object of Entry
+        name*: string
+        email*: string
+
+    Movement* = object of Entry
         name*: string
         plane*: MovementPlane
         area*: MovementArea
@@ -46,21 +48,12 @@ type
         symmetry*: Symmetry
         description*: string
 
-    ExistingMovement* = object of NewMovement
-        id*: int
-
-    NewMovementCombo* = object of RootObj
+    MovementCombo* = object of Entry
         name*: string
-    
-    ExistingMovementCombo* = object of NewMovementCombo
-        id*: int
 
-    NewMovementComboAssignment* = object of RootObj
-        movement*: ExistingMovement
-        movement_combo*: ExistingMovementCombo
-
-    ExistingMovementComboAssignment* = object of NewMovementComboAssignment
-        id*: int
+    MovementComboAssignment* = object of Entry
+        movement*: Movement
+        movement_combo*: MovementCombo
 
     IntensityUnits* = enum
         UnspecifiedIntensityUnit
@@ -68,21 +61,21 @@ type
         Kilograms
         PercentageOfOneRepMax
 
-    Intensity* = object
+    Intensity* = object of Entry
         quantity*: float32
         intensity*: IntensityUnits
 
-    Routine* = object
+    Routine* = object of Entry
         name*: string
-        user*: NewUser
+        user*: User
 
-    Session* = object
+    Session* = object of Entry
         date*: DateTime
         routine*: Routine
  
-    Set* = object
-        movement*: ExistingMovement
-        movement_combo*: ExistingMovementCombo
+    Set* = object of Entry
+        movement*: Movement
+        movement_combo*: MovementCombo
         reps*: int
         tempo*: string
         intensity*: Intensity

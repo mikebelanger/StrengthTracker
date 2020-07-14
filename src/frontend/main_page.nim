@@ -12,8 +12,8 @@ var
     return_button: cstring = "click here for more stuff"
     movement_left_blank = false
     pageMode = Login
-    all_movements: seq[ExistingMovement]
-    all_users = @[ExistingUser(name: "Another user", email: "anotheruser@email.com")]
+    all_movements: seq[Movement]
+    all_users = @[User(name: "Another user", email: "anotheruser@email.com")]
     planes: seq[string]
     areas: seq[string]
     concentric_types: seq[string]
@@ -35,7 +35,7 @@ proc read_all_users() =
         case status:
             of 200:
                 try:
-                    var users = parseJson($resp).mapIt(it.to(ExistingUser))
+                    var users = parseJson($resp).mapIt(it.to(User))
                     all_users.add(users)
 
                 except Exception as e:
@@ -51,7 +51,7 @@ proc readMovement(id: int) =
     ajaxPost(url = $ReadMovement, headers = @[], data = $submit_data, proc (status: int, resp: cstring) =
         case status:
             of 200:
-                var new_movement = parseJson($resp).to(ExistingMovement)
+                var new_movement = parseJson($resp).to(Movement)
 
                 for i, movement in all_movements:
 
@@ -65,7 +65,7 @@ proc readMovement(id: int) =
 
 proc readAllMovements() =
     ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
-        all_movements = parseJson($resp).mapIt(it.to(ExistingMovement))
+        all_movements = parseJson($resp).mapIt(it.to(Movement))
     )
     
 proc readDistinctMovementAttributes() =
@@ -114,7 +114,7 @@ proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id
             movement_left_blank = false
 
             var 
-                movement = NewMovement(
+                movement = Movement(
                     name: $name,
                     plane: parseEnum[MovementPlane](get_option_value(plane_id)),
                     area: parseEnum[MovementArea](get_option_value(area_id)),
@@ -140,7 +140,7 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
         var 
             name_elem = document.getElementById(name_id)
             name = name_elem.value
-            movement = ExistingMovement(
+            movement = Movement(
                 id: db_id.parseInt,
                 name: $name,
                 plane: parseEnum[MovementPlane](get_option_value(plane_id)),

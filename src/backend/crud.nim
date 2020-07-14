@@ -3,6 +3,11 @@ import allographer/query_builder
 import json
 import sequtils, strutils
 
+const restricted = @[
+    "id",
+    "kind"
+]
+
 #################
 #### HELPERS ####
 #################
@@ -10,7 +15,7 @@ import sequtils, strutils
 proc exists*(i: int): bool =
     i > 0
 
-proc worked*(i: seq[ExistingMovement | ExistingMovementCombo | ExistingMovementComboAssignment]): bool =
+proc worked*(i: seq[Movement | MovementCombo | MovementComboAssignment]): bool =
     if i.len == 0:
         return false
 
@@ -19,8 +24,19 @@ proc worked*(i: seq[ExistingMovement | ExistingMovementCombo | ExistingMovementC
 
     return true
 
-proc obj_to_json*(obj: object): JsonNode =
-    %*obj
+proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User): JsonNode =
+    var to_json = parseJson("{}")
+
+    for key, val in obj.fieldPairs:
+
+        if not restricted.contains(key):
+
+            # if key is object:
+            #     echo key, " is object"
+
+            to_json{key}= %*val
+
+    return to_json
 
 # For some reason I can't override the `%*` template for tuples
 proc to_json*(t: tuple): JsonNode =
@@ -73,13 +89,42 @@ proc is_complete*(x: object): bool =
 
     return true
 
-proc convert_to*(j: JsonNode, t: typedesc): object =
+proc to_new*(j: JsonNode, t: typedesc): object =
+    var to_convert = parseJson("{}")
+    to_convert{"kind"}= %"New"
+
     try:
-        result = j.to(t)
+        for key in j.keys:
+            
+            if not restricted.contains(key):
+                to_convert{key}= %*j{key}
+
+        result =  to_convert.to(t)
     except:
         echo getCurrentExceptionMsg()
 
     return result
+
+proc to_existing*(j: JsonNode, t: typedesc): object =
+    j{"kind"}= %"Existing"
+
+    try:
+        result =  j.to(t)
+
+    except:
+        echo getCurrentExceptionMsg()
+
+    return result
+
+proc is_valid_for(j: JsonNode, e: EntryKind, t: typedesc): bool =
+    j{"kind"}= %e
+
+    try:
+        discard j.to(t)
+        return true
+    except:
+        echo getCurrentExceptionMsg()
+        return false
 
 proc get_id*(j: JsonNode): int =
     try:
@@ -89,111 +134,40 @@ proc get_id*(j: JsonNode): int =
     
     return result
 
-################
-#### CREATE ####
-################
+##################
+#### CREATE ######
+##################
 
-proc db_create*(table: RDB, obj: object): int =
-
-    result = table.insertID(%*obj)
-
-proc db_create*(u: NewUser): ExistingUser =
-
-    let user_table = UserTable.db_connect
-
-    var ut = ExistingUser(
-        name: u.name,
-        email: u.email
-    )
-
-    try:
-        ut.id = user_table.db_create(u)
-
-    except:
-        echo getCurrentExceptionMsg()
-
-    return ut
-
-proc db_create*(nm: NewMovement): ExistingMovement =
-
-    let movement_table = MovementTable.db_connect
-    var em = ExistingMovement(
-            name: nm.name,
-            plane: nm.plane,
-            area: nm.area,
-            concentric_type: nm.concentric_type,
-            symmetry: nm.symmetry,
-            description: nm.description
-        )
-
-    try:
-        em.id = movement_table.db_create(nm)
-
-    except:
-        echo getCurrentExceptionMsg()
-
-    return em
-
-
-proc db_create*(nmc: NewMovementCombo): ExistingMovementCombo =
-
-    let movement_combo_table = MovementComboTable.db_connect
-    var emc = ExistingMovementCombo(
-            name: nmc.name
-        )
-
-    try:
-        emc.id = movement_combo_table.db_create(nmc)
-
-    except:
-        echo getCurrentExceptionMsg()
+proc db_create*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[t] =
     
-    return emc
+    result = jnodes.filterIt(it.is_valid_for(New, t))
+                   .mapIt(it.to_new(t))
+                   .filterIt(it.is_complete)
+                   .mapIt(into.db_connect.insertID(it.to_json))
+                   .filterIt(it > 0)
+                   .mapIt(into.db_connect.find(it))
+                   .mapIt(it.to_existing(t))
+                   .filterIt(it.is_complete)
 
-proc db_create*(nmca: NewMovementComboAssignment): ExistingMovementComboAssignment =
+##################
+#### UPDATE ######
+##################
+
+proc db_update*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[t] =
     
-    let 
-        movement_combo_assignment_table = MovementComboAssignmentTable.db_connect
-        to_insert = (movement_id: nmca.movement.id, movement_combo_id: nmca.movement_combo.id)
-    
-    var emca = ExistingMovementComboAssignment(movement: nmca.movement, movement_combo: nmca.movement_combo)
-    
-    try:
-        emca.id = movement_combo_assignment_table.insertID(to_insert.to_json)
+    result = jnodes.filterIt(it.is_valid_for(Existing, t))
+                   .mapIt(it.to_existing(t))
+                   .filterIt(it.is_complete)
+                   .map(proc (this: object): object =
+                        try:
+                            into.db_connect.where("id", "=", this.id).update(this.to_json)
+                            result = this
+                        except:
+                            echo getCurrentExceptionMsg()
 
-    except:
-        echo getCurrentExceptionMsg()
+                   ).filterIt(it.is_complete)                         
 
-    return emca
 
-################
-##### READ #####
-################
-
-proc db_read*(table: RDB): seq[JsonNode] =
-
-    try:
-        result = table.get()
-    
-    except:
-        echo getCurrentExceptionMsg()
-        result = @[parseJson("{}")]
-
-################
-#### UPDATE ####
-################
-
-proc db_update*(table: RDB, input: JsonNode): bool =
-    try:
-        table.update(input)
-        result = true
-    except:
-        echo getCurrentExceptionMsg()
-        result = false
-
-################
-#### DELETE ####
-################
 
 # if isMainModule:
 
@@ -218,22 +192,127 @@ if isMainModule:
     { "stuf : erger' }
     """
 
-    let y = """
-    { "name" : "my fantastic movement" }
-    """
+    let 
+        bad = """
+        { erg\
+        """
 
-    let movements_completed = 
+        stupid = """
+        { "name" : "my fantastic movement" }
+        """
+
+        sort_of_ok = """
+        { "name" : "push-up",
+          "plane" : "Horizontal",
+          "concentric_type" : "Push", 
+          "area" : "Upper",
+          "symmetry" : "Binaugural"
+        }
+        """
+
+        should_work = """
+        { "name" : "Kettlebell Step Up",
+          "plane" : "Vertical",
+          "concentric_type" : "Squat", 
+          "area" : "Upper",
+          "symmetry" : "Bilateral",
+          "description" : "on the floor"
+        }
+        """
+
+        should_work_updated = """
+        { "id" : 1,
+          "name" : "Kettlebell Step Up WITH FIRE",
+          "plane" : "Vertical",
+          "concentric_type" : "Squat", 
+          "area" : "Upper",
+          "symmetry" : "Bilateral",
+          "description" : "stepping on a flaming brick"
+        }
+        """
+
+        should_work_updated_wrong = """
+        { "id" : 1,
+          "name" : "Kettlebell Step Up WITH FIRE",
+          "plane" : "Blah",
+          "concentric_type" : "Squat", 
+          "area" : "Upper",
+          "symmetry" : "Bilateral",
+          "description" : "stepping on a flaming brick"
+        }
+        """
+
+        movement_combo = """
+            { "name" : "some_new_combo" }
+        """
+
+        # movements_completed = 
     
-        y.interpretJson.map(proc (j: JsonNode): NewMovement =
-            try:
-                result = j.to(NewMovement)
-            except:
-                echo getCurrentExceptionMsg()
-        ).mapIt(it.is_complete)
+        #     stupid.interpretJson.map(proc (j: JsonNode): Movement =
+        #         try:
+        #             result = j.to(Movement)
+        #         except:
+        #             echo getCurrentExceptionMsg()
+        #     ).mapIt(it.is_complete)
 
-    if movements_completed.allIt(it):
-        echo "they work!"
-    else:
-        echo "They don't work"
+        # movement_table = MovementTable.db_connect
 
-    echo "but I got to the end of the program!!!"
+    # if movements_completed.allIt(it):
+    #     echo "they work!"
+    # else:
+    #     echo "They don't work"
+
+    # echo "but I got to the end of the program!!!"
+
+    # echo bad.interpretJson.mapIt(it.to_new(Movement))
+    # echo stupid.interpretJson.mapIt(it.to_new(Movement))
+    # echo sort_of_ok.interpretJson.mapIt(it.to_new(Movement))
+    # let 
+    #     to_insert = should_work.interpretJson
+    #                             .mapIt(it.to_new(Movement))
+    #                             .mapIt(it.to_json)
+
+    #     inserted = MovementTable.db_connect.insertID(to_insert)
+
+    # echo inserted
+
+    # let test = stupid.interpretJson.mapIt(it.to_new(Movement))
+    #                                        .mapIt(it.to_json)
+    #                                        .mapIt(MovementTable.db_connect.insertID(it))
+    #                                        .filterIt(it > 0)
+    #                                        .map(proc (id: int): Movement =
+
+    #                                             try:
+    #                                                 result = MovementTable.db_connect
+    #                                                                       .find(19)
+    #                                                                       .to_existing(Movement)
+
+
+    #                                             except:
+    #                                                 echo getCurrentExceptionMsg()
+
+    #                                        ).filterIt(it.kind == Existing)
+
+    let sort_of = sort_of_ok.interpretJson.db_create(Movement, into = MovementTable)
+    echo "sort_of", sort_of, sort_of.worked
+
+    let new_movement = should_work.interpretJson.db_create(Movement, into = MovementTable)
+    echo "movement", new_movement, new_movement.worked
+
+    let updated_movement = should_work_updated.interpretJson.db_update(Movement, into = MovementTable)
+    echo "updated movement: ", updated_movement, updated_movement.worked
+
+    let updated_movement_wrong = should_work_updated_wrong.interpretJson
+                                                          .db_update(Movement, into = MovementTable)
+
+    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
+
+    # echo "test", test
+
+    
+    # echo test
+    # echo MovementComboTable.db_connect.insertID(test)
+    # echo MovementTable.db_connect.query_matching_all((name: "Kettlebell Step Up")).first.to_existing(Movement)
+    # echo id
+    # echo MovementTable.db_connect.find(id[0])
+    # echo id.mapIt(MovementTable.db_connect.find(it)

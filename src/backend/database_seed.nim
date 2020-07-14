@@ -7,7 +7,8 @@ let
     movements = @[
 
         ### Horizontal Upper Body
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Push-up",
             area: Upper,
             symmetry: Bilateral,
@@ -15,7 +16,8 @@ let
             plane: Horizontal,
             description: "Hands chest-width apart.  Elbows tucked in."
         ),
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Ring Row",
             area: Upper,
             symmetry: Bilateral,
@@ -23,7 +25,8 @@ let
             plane: Horizontal,
             description: "Rings chest-width apart.  Straps hanging 30inches apart"
         ),
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Bench Press",
             area: Upper,
             symmetry: Bilateral,
@@ -32,7 +35,8 @@ let
             description: "For maximum bro-ness."
         ),
         
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Ring Dip",
             area: Upper,
             symmetry: Bilateral,
@@ -41,7 +45,8 @@ let
             description: "Straps 18 inches apart, hanging 26 inches from bar"
         ),
 
-        NewMovement(
+        Movement(
+            kind: New,
             name: "One-armed Kettlebell Swing",
             area: Lower,
             symmetry: Unilateral,
@@ -49,7 +54,8 @@ let
             plane: Frontal,
         ),
 
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Barbell Snatch",
             area: Full,
             symmetry: Bilateral,
@@ -57,7 +63,8 @@ let
             plane: MultiPlane
         ),
 
-        NewMovement(
+        Movement(
+            kind: New,
             name: "Side Lunge Squat",
             area: Lower,
             symmetry: Unilateral,
@@ -68,64 +75,67 @@ let
 
     #### Users
     users = [
-        NewUser(
+        User(
+            kind: New,
             name: "Mike",
             email: "mikejamesbelanger@gmail.com"
         )
     ]
 
-    ring_pullup = NewMovement(
+    ring_pullup = Movement(
+        kind: New,
         name: "Ring Pullup",
         area: Upper,
         symmetry: Bilateral,
         concentric_type: Pull,
         plane: Vertical,
         description: "Straps 28 inches apart, hanging 6 inches from the bar."
-    ).db_create
+    )
 
-    split_squat = NewMovement(
+    split_squat = Movement(
+        kind: New,
         name: "Bulgarian Split Squat",
         area: Lower,
         symmetry: Unilateral,
         concentric_type: Squat,
         plane: Frontal,
         description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
-    ).db_create
+    )
 
-    movement_combo = NewMovementCombo(
+    movement_combo = MovementCombo(
+        kind: New,
         name: "Pull-up + Split Squat Combo"
-    ).db_create
+    )
 
-    assignments = [
-        NewMovementComboAssignment(
-            movement_combo: movement_combo,
-            movement: ring_pullup
-        ),
+    # assignments = [
+    #     MovementComboAssignment(
+    #         kind: New,
+    #         movement_combo: movement_combo,
+    #         movement: ring_pullup
+    #     ),
 
-        NewMovementComboAssignment(
-            movement_combo: movement_combo,
-            movement: split_squat
-        )
-    ]
+    #     MovementComboAssignment(
+    #         kind: New,
+    #         movement_combo: movement_combo,
+    #         movement: split_squat
+    #     )
+    # ]
 
 
 if isMainModule:
 
-    try:
-        var movement_table = RDB().table($MovementTable)
+    var movement_table = RDB().table($MovementTable)
 
-        movement_table.insert(
-            movements.filterIt(it.is_complete).mapIt(%*it)
-        )
+    movement_table.insert(
+        movements.mapIt(it.to_json)
+    )
 
-        echo ring_pullup, split_squat
+        # echo ring_pullup, split_squat
 
-        for assi in assignments:
-            discard assi.db_create
+        # for assi in assignments:
+        #     discard assi.db_create
 
-    except:
-        echo getCurrentExceptionMsg()
 
     
-    for u in users:
-        discard u.db_create
+    # for u in users:
+    #     discard u.db_create

@@ -23,7 +23,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                     of ReadAllMovement:
                         var all_movements = MovementTable.db_connect
-                                                         .db_read
+                                                         .select()
+                                                         .get()
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
@@ -41,7 +42,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of ReadAllUsers:
 
                         var all_users = UserTable.db_connect
-                                                 .db_read
+                                                 .select()
+                                                 .get()
 
                         echo all_users
                         resp %*all_users
@@ -60,9 +62,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 # interpret json into sequence
                                 request.body.interpretJson
-                                .mapIt(it.convert_to(NewMovement))
-                                .filterIt(it.is_complete)
-                                .map(db_create)
+                                            .db_create(Movement, into = MovementTable)
                             
                         if movement_creation.worked:
                             resp Http200, "Success"
@@ -97,16 +97,10 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 
                                 # Interpret incoming JSON, convert to an existing movement
                                 request.body.interpretJson
-                                .mapIt(it.convert_to(ExistingMovement))
-                                .map(proc (em: ExistingMovement): bool =
-
-                                    # Should only be one movement with the id, but just in case
-                                    result = movement_table.where("id", "=", em.id)
-                                                           .db_update(%*em)
-                                )
+                                            .db_update(Movement, into = MovementTable)
     
                         
-                        if existing_movements_updated.allIt(it):
+                        if existing_movements_updated.worked:
                             resp Http200, "Movement updated successfully"
                         else:
                             resp Http501, "Error updating movement"
@@ -119,8 +113,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             movement_combo_creation = 
 
                                 request.body.interpretJson
-                                .mapIt(it.convert_to(NewMovementCombo))
-                                .mapIt(it.db_create)
+                                            .db_create(MovementCombo, into = MovementComboTable)
 
                         if movement_combo_creation.worked:
 
@@ -136,8 +129,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             combo_assignment_creation =
                                 
                                 request.body.interpretJson
-                                .mapIt(it.convert_to(NewMovementComboAssignment))
-                                .mapIt(it.db_create)
+                                            .db_create(MovementComboAssignment, MovementComboAssignmentTable)
 
                         if combo_assignment_creation.worked:
 
