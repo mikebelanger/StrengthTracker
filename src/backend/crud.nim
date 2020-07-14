@@ -8,6 +8,11 @@ const restricted = @[
     "kind"
 ]
 
+const foreign_prefixes = @[
+    "movement",
+    "movement_combo"
+]
+
 #################
 #### HELPERS ####
 #################
@@ -15,14 +20,15 @@ const restricted = @[
 proc exists*(i: int): bool =
     i > 0
 
-proc worked*(i: seq[Movement | MovementCombo | MovementComboAssignment]): bool =
+proc worked*(i: seq[JsonNode]): bool =
     if i.len == 0:
         return false
 
-    elif i.anyIt(it.id <= 0):
+    elif i.anyIt(it{"id"}.getInt <= 0):
         return false
 
     return true
+
 
 proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User): JsonNode =
     var to_json = parseJson("{}")
@@ -31,12 +37,25 @@ proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User): J
 
         if not restricted.contains(key):
 
-            # if key is object:
-            #     echo key, " is object"
-
             to_json{key}= %*val
 
     return to_json
+
+proc get_foreign_keys*(j: JsonNode): JsonNode =
+
+    result = parseJson("{}")
+
+    for key in j.keys:
+
+        if key in foreign_prefixes:
+
+            result{key & "_id"}= j{key}{"id"}
+
+        else:
+
+            result{key}= j{key}
+
+    return result
 
 # For some reason I can't override the `%*` template for tuples
 proc to_json*(t: tuple): JsonNode =
@@ -138,35 +157,34 @@ proc get_id*(j: JsonNode): int =
 #### CREATE ######
 ##################
 
-proc db_create*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[t] =
+proc db_create*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[JsonNode] =
     
     result = jnodes.filterIt(it.is_valid_for(New, t))
                    .mapIt(it.to_new(t))
                    .filterIt(it.is_complete)
-                   .mapIt(into.db_connect.insertID(it.to_json))
+                   .mapIt(it.to_json.get_foreign_keys)
+                   .mapIt(into.db_connect.insertID(it))
                    .filterIt(it > 0)
                    .mapIt(into.db_connect.find(it))
-                   .mapIt(it.to_existing(t))
-                   .filterIt(it.is_complete)
 
 ##################
 #### UPDATE ######
 ##################
 
-proc db_update*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[t] =
+proc db_update*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[JsonNode] =
     
     result = jnodes.filterIt(it.is_valid_for(Existing, t))
                    .mapIt(it.to_existing(t))
                    .filterIt(it.is_complete)
-                   .map(proc (this: object): object =
+                   .map(proc (this: object): JsonNode =
                         try:
-                            into.db_connect.where("id", "=", this.id).update(this.to_json)
-                            result = this
+                            var to_insert = this.to_json
+                            into.db_connect.where("id", "=", this.id).update(to_insert)
+                            result = to_insert
                         except:
                             echo getCurrentExceptionMsg()
 
                    )
-                   .filterIt(it.is_complete)                         
 
 
 
@@ -247,6 +265,21 @@ if isMainModule:
             { "name" : "some_new_combo" }
         """
 
+        movement_combo_assignment = """
+            { "movement": { "id" : 1,
+                            "kind" : "Existing",
+                            "name" : "Kettlebell Step Up WITH FIRE",
+                            "plane" : "Vertical",
+                            "concentric_type" : "Squat", 
+                            "area" : "Upper",
+                            "symmetry" : "Bilateral",
+                            "description" : "stepping on a flaming brick" },
+              "movement_combo" : { "id" : 1,
+                                   "kind": "Existing",
+                                   "name" : "some_new_combo"
+                                  }
+            }
+        """
         # movements_completed = 
     
         #     stupid.interpretJson.map(proc (j: JsonNode): Movement =
@@ -308,6 +341,20 @@ if isMainModule:
 
     echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
 
+    echo "movement combo: ", movement_combo.interpretJson.db_create(MovementCombo, into = MovementComboTable)
+
+    let mca_as = movement_combo_assignment.interpretJson
+                                        .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
+    echo "movement combo assignment: ", mca_as
+
+    echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
+                                                    result = 
+                                                        MovementComboAssignment(kind: Existing,
+                                                                                id: j{"id"}.getInt,
+                                                                                movement: MovementTable.db_connect.where("id", "=", j{"movement_id"}.getInt).first.to_existing(Movement),
+                                                                                movement_combo: MovementComboTable.db_connect.where("id", "=", j{"movement_combo_id"}.getInt).first.to_existing(MovementCombo)
+                                                        )
+                                                )
     # echo "test", test
 
     
