@@ -165,7 +165,8 @@ proc db_update*(jnodes: seq[JsonNode], t: typedesc, into: DataTable): seq[t] =
                         except:
                             echo getCurrentExceptionMsg()
 
-                   ).filterIt(it.is_complete)                         
+                   )
+                   .filterIt(it.is_complete)                         
 
 
 
