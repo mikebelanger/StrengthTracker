@@ -92,7 +92,6 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of UpdateMovement:
 
                         let 
-                            movement_table = MovementTable.db_connect
                             existing_movements_updated = 
                                 
                                 # Interpret incoming JSON, convert to an existing movement
