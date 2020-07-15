@@ -1,6 +1,5 @@
-import allographer/query_builder
 import ../app_types, database_schema
-import json, strutils, sequtils
+import json, strutils, sequtils, strformat, times
 import crud
 
 let
@@ -74,13 +73,12 @@ let
     ]
 
     #### Users
-    users = [
-        User(
-            kind: New,
-            name: "Mike",
-            email: "mikejamesbelanger@gmail.com"
-        )
-    ]
+    mike = """
+    {"kind": "New",
+    "name": "Mike",
+    "email": "mikejamesbelanger@gmail.com"
+    }
+    """
 
     ring_pullup = Movement(
         kind: New,
@@ -102,38 +100,154 @@ let
         description: "Back foot resting on black PVC pipe.  Pipe is sitting on top of rack, two notches up from bottom."
     )
 
-    movement_combo = MovementCombo(
-        kind: New,
-        name: "Pull-up + Split Squat Combo"
+
+    x = """
+    { "stuf : erger' }
+    """
+
+    bad = """
+    { erg\
+    """
+
+    stupid = """
+    { "name" : "my fantastic movement" }
+    """
+
+    sort_of_ok = """
+    { "name" : "push-up",
+        "plane" : "Horizontal",
+        "concentric_type" : "Push", 
+        "area" : "Upper",
+        "symmetry" : "Binaugural"
+    }
+    """
+
+    should_work = """
+    { "name" : "Kettlebell Step Up",
+        "plane" : "Vertical",
+        "concentric_type" : "Squat", 
+        "area" : "Upper",
+        "symmetry" : "Bilateral",
+        "description" : "on the floor"
+    }
+    """
+
+    should_work_updated = """
+    { "id" : 1,
+        "name" : "Kettlebell Step Up WITH FIRE",
+        "plane" : "Vertical",
+        "concentric_type" : "Squat", 
+        "area" : "Upper",
+        "symmetry" : "Bilateral",
+        "description" : "stepping on a flaming brick"
+    }
+    """
+
+    should_work_updated_wrong = """
+    { "id" : 1,
+        "name" : "Kettlebell Step Up WITH FIRE",
+        "plane" : "Blah",
+        "concentric_type" : "Squat", 
+        "area" : "Upper",
+        "symmetry" : "Bilateral",
+        "description" : "stepping on a flaming brick"
+    }
+    """
+
+    movement_combo = """
+        { "name" : "some_new_combo" }
+    """
+
+    movement_combo_assignment = """
+        { "movement": { "id" : 1,
+                        "kind" : "Existing",
+                        "name" : "Kettlebell Step Up WITH FIRE",
+                        "plane" : "Vertical",
+                        "concentric_type" : "Squat", 
+                        "area" : "Upper",
+                        "symmetry" : "Bilateral",
+                        "description" : "stepping on a flaming brick" },
+            "movement_combo" : { "id" : 1,
+                                "kind": "Existing",
+                                "name" : "some_new_combo"
+                                }
+        }
+    """
+
+    routine = """
+        { "kind" : "New",
+          "name" : "Mikes current routine - strength",
+          "user" : {
+                    "kind" : "Existing",
+                    "id" : 1,
+                    "name": "Mike",
+                    "email": "mikejamesbelanger@gmail.com"
+                    }
+        }
+
+    """
+
+    session = Session(
+        date: now(),
+        routine: routine.parseJson.to(Routine)
     )
-
-    # assignments = [
-    #     MovementComboAssignment(
-    #         kind: New,
-    #         movement_combo: movement_combo,
-    #         movement: ring_pullup
-    #     ),
-
-    #     MovementComboAssignment(
-    #         kind: New,
-    #         movement_combo: movement_combo,
-    #         movement: split_squat
-    #     )
-    # ]
-
 
 if isMainModule:
+    echo session
+    echo session.to_json
+    echo $session.to_json
+    echo ($session.to_json).interpretJson
+    echo $session.to_json.to(Session)
 
-    var movement_table = RDB().table($MovementTable)
+    # let mike_try = mike.interpretJson.db_create(User, into = UserTable)
+    # echo "user", mike_try, mike_try.worked
 
-    movement_table.insert(
-        movements.mapIt(it.to_json)
-    )
+    # let routine_try = routine.interpretJson.db_create(Routine, into = RoutineTable)
+    # echo "routine try: ", routine_try, routine_try.worked 
 
-        # echo ring_pullup, split_squat
+    # let session_try = ($session.to_json).interpretJson.db_create(Session, into = SessionTable)
 
-        # for assi in assignments:
-        #     discard assi.db_create
+    # let sort_of = sort_of_ok.interpretJson.db_create(Movement, into = MovementTable)
+    # echo "sort_of", sort_of, sort_of.worked
+
+    # let new_movement = should_work.interpretJson.db_create(Movement, into = MovementTable)
+    # echo "movement", new_movement, new_movement.worked
+
+    # let updated_movement = should_work_updated.interpretJson.db_update(Movement, into = MovementTable)
+    # echo "updated movement: ", updated_movement, updated_movement.worked
+
+    # let updated_movement_wrong = should_work_updated_wrong.interpretJson
+    #                                                       .db_update(Movement, into = MovementTable)
+
+    # echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
+
+    # echo "movement combo: ", movement_combo.interpretJson.db_create(MovementCombo, into = MovementComboTable)
+
+    # let mca_as = movement_combo_assignment.interpretJson
+    #                                     .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
+    # echo "movement combo assignment: ", mca_as
+
+    # echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
+    #                                                 result = 
+    #                                                     MovementComboAssignment(kind: Existing,
+    #                                                                             id: j{"id"}.getInt,
+    #                                                                             movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
+    #                                                                                                             .to_existing(Movement),
+    #                                                                             movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
+    #                                                                                                             .to_existing(MovementCombo)
+    #                                                     )
+    #                                             )
+
+    # var movement_table = RDB().table($MovementTable)
+
+    # movement_table.insert(
+    #     movements.mapIt(it.to_json)
+    # )
+
+    # echo ring_pullup, split_squat
+
+    # for assi in assignments:
+    #     discard assi.db_create
 
 
     

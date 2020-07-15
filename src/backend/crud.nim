@@ -2,6 +2,7 @@ import ../app_types, database_schema
 import allographer/query_builder
 import json
 import sequtils, strutils
+import times
 
 const restricted = @[
     "id",
@@ -10,7 +11,8 @@ const restricted = @[
 
 const foreign_prefixes = @[
     "movement",
-    "movement_combo"
+    "movement_combo",
+    "user"
 ]
 
 #################
@@ -30,16 +32,23 @@ proc worked*(i: seq[JsonNode]): bool =
     return true
 
 
-proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User): JsonNode =
+proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User | Routine): JsonNode =
     var to_json = parseJson("{}")
 
     for key, val in obj.fieldPairs:
 
         if not restricted.contains(key):
 
-            to_json{key}= %*val
+            to_json{key}= %($val)
 
     return to_json
+
+
+proc to_json*(obj: Session): JsonNode =
+
+    result = %*{ "routine": obj.routine.to_json,
+                 "date": obj.date.format("yyyy-MM-dd") }
+
 
 proc get_foreign_keys*(j: JsonNode): JsonNode =
 
@@ -213,164 +222,3 @@ proc db_read_from_id*(id: int, into: DataTable): JsonNode =
     # echo all
     # echo any.len, all.len
 
-if isMainModule:
-
-    let x = """
-    { "stuf : erger' }
-    """
-
-    let 
-        bad = """
-        { erg\
-        """
-
-        stupid = """
-        { "name" : "my fantastic movement" }
-        """
-
-        sort_of_ok = """
-        { "name" : "push-up",
-          "plane" : "Horizontal",
-          "concentric_type" : "Push", 
-          "area" : "Upper",
-          "symmetry" : "Binaugural"
-        }
-        """
-
-        should_work = """
-        { "name" : "Kettlebell Step Up",
-          "plane" : "Vertical",
-          "concentric_type" : "Squat", 
-          "area" : "Upper",
-          "symmetry" : "Bilateral",
-          "description" : "on the floor"
-        }
-        """
-
-        should_work_updated = """
-        { "id" : 1,
-          "name" : "Kettlebell Step Up WITH FIRE",
-          "plane" : "Vertical",
-          "concentric_type" : "Squat", 
-          "area" : "Upper",
-          "symmetry" : "Bilateral",
-          "description" : "stepping on a flaming brick"
-        }
-        """
-
-        should_work_updated_wrong = """
-        { "id" : 1,
-          "name" : "Kettlebell Step Up WITH FIRE",
-          "plane" : "Blah",
-          "concentric_type" : "Squat", 
-          "area" : "Upper",
-          "symmetry" : "Bilateral",
-          "description" : "stepping on a flaming brick"
-        }
-        """
-
-        movement_combo = """
-            { "name" : "some_new_combo" }
-        """
-
-        movement_combo_assignment = """
-            { "movement": { "id" : 1,
-                            "kind" : "Existing",
-                            "name" : "Kettlebell Step Up WITH FIRE",
-                            "plane" : "Vertical",
-                            "concentric_type" : "Squat", 
-                            "area" : "Upper",
-                            "symmetry" : "Bilateral",
-                            "description" : "stepping on a flaming brick" },
-              "movement_combo" : { "id" : 1,
-                                   "kind": "Existing",
-                                   "name" : "some_new_combo"
-                                  }
-            }
-        """
-        # movements_completed = 
-    
-        #     stupid.interpretJson.map(proc (j: JsonNode): Movement =
-        #         try:
-        #             result = j.to(Movement)
-        #         except:
-        #             echo getCurrentExceptionMsg()
-        #     ).mapIt(it.is_complete)
-
-        # movement_table = MovementTable.db_connect
-
-    # if movements_completed.allIt(it):
-    #     echo "they work!"
-    # else:
-    #     echo "They don't work"
-
-    # echo "but I got to the end of the program!!!"
-
-    # echo bad.interpretJson.mapIt(it.to_new(Movement))
-    # echo stupid.interpretJson.mapIt(it.to_new(Movement))
-    # echo sort_of_ok.interpretJson.mapIt(it.to_new(Movement))
-    # let 
-    #     to_insert = should_work.interpretJson
-    #                             .mapIt(it.to_new(Movement))
-    #                             .mapIt(it.to_json)
-
-    #     inserted = MovementTable.db_connect.insertID(to_insert)
-
-    # echo inserted
-
-    # let test = stupid.interpretJson.mapIt(it.to_new(Movement))
-    #                                        .mapIt(it.to_json)
-    #                                        .mapIt(MovementTable.db_connect.insertID(it))
-    #                                        .filterIt(it > 0)
-    #                                        .map(proc (id: int): Movement =
-
-    #                                             try:
-    #                                                 result = MovementTable.db_connect
-    #                                                                       .find(19)
-    #                                                                       .to_existing(Movement)
-
-
-    #                                             except:
-    #                                                 echo getCurrentExceptionMsg()
-
-    #                                        ).filterIt(it.kind == Existing)
-
-    let sort_of = sort_of_ok.interpretJson.db_create(Movement, into = MovementTable)
-    echo "sort_of", sort_of, sort_of.worked
-
-    let new_movement = should_work.interpretJson.db_create(Movement, into = MovementTable)
-    echo "movement", new_movement, new_movement.worked
-
-    let updated_movement = should_work_updated.interpretJson.db_update(Movement, into = MovementTable)
-    echo "updated movement: ", updated_movement, updated_movement.worked
-
-    let updated_movement_wrong = should_work_updated_wrong.interpretJson
-                                                          .db_update(Movement, into = MovementTable)
-
-    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
-
-    echo "movement combo: ", movement_combo.interpretJson.db_create(MovementCombo, into = MovementComboTable)
-
-    let mca_as = movement_combo_assignment.interpretJson
-                                        .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
-    echo "movement combo assignment: ", mca_as
-
-    echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
-                                                    result = 
-                                                        MovementComboAssignment(kind: Existing,
-                                                                                id: j{"id"}.getInt,
-                                                                                movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
-                                                                                                                .to_existing(Movement),
-                                                                                movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
-                                                                                                                .to_existing(MovementCombo)
-                                                        )
-                                                )
-    # echo "test", test
-
-    
-    # echo test
-    # echo MovementComboTable.db_connect.insertID(test)
-    # echo MovementTable.db_connect.query_matching_all((name: "Kettlebell Step Up")).first.to_existing(Movement)
-    # echo id
-    # echo MovementTable.db_connect.find(id[0])
-    # echo id.mapIt(MovementTable.db_connect.find(it)
