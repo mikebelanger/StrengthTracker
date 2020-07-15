@@ -1,6 +1,7 @@
 import ../app_types, database_schema
-import json, strutils, sequtils, strformat, times
-import crud
+import allographer/query_builder
+import json, strutils, sequtils
+import crud, times
 
 let
     movements = @[
@@ -188,68 +189,60 @@ let
     """
 
     session = Session(
-        date: now(),
+        kind: New,
+        date: now().to_Date,
         routine: routine.parseJson.to(Routine)
     )
 
 if isMainModule:
-    echo session
-    echo session.to_json
-    echo $session.to_json
-    echo ($session.to_json).interpretJson
-    echo $session.to_json.to(Session)
+    # echo session
+    # echo session.to_json
+    # echo $session.to_json
+    # echo ($session.to_json).interpretJson
+    # echo (%*session).to(Session)
 
-    # let mike_try = mike.interpretJson.db_create(User, into = UserTable)
-    # echo "user", mike_try, mike_try.worked
+    let mike_try = mike.interpretJson.db_create(User, into = UserTable)
+    echo "user", mike_try, mike_try.worked
 
-    # let routine_try = routine.interpretJson.db_create(Routine, into = RoutineTable)
-    # echo "routine try: ", routine_try, routine_try.worked 
+    let routine_try = routine.interpretJson.db_create(Routine, into = RoutineTable)
+    echo "routine try: ", routine_try, routine_try.worked 
 
-    # let session_try = ($session.to_json).interpretJson.db_create(Session, into = SessionTable)
+    let session_try = ($session.to_json).interpretJson.db_create(Session, into = SessionTable)
+    echo "session try: ", session_try, session_try.worked
 
-    # let sort_of = sort_of_ok.interpretJson.db_create(Movement, into = MovementTable)
-    # echo "sort_of", sort_of, sort_of.worked
+    let sort_of = sort_of_ok.interpretJson.db_create(Movement, into = MovementTable)
+    echo "sort_of", sort_of, sort_of.worked
 
-    # let new_movement = should_work.interpretJson.db_create(Movement, into = MovementTable)
-    # echo "movement", new_movement, new_movement.worked
+    let new_movement = should_work.interpretJson.db_create(Movement, into = MovementTable)
+    echo "movement", new_movement, new_movement.worked
 
-    # let updated_movement = should_work_updated.interpretJson.db_update(Movement, into = MovementTable)
-    # echo "updated movement: ", updated_movement, updated_movement.worked
+    let updated_movement = should_work_updated.interpretJson.db_update(Movement, into = MovementTable)
+    echo "updated movement: ", updated_movement, updated_movement.worked
 
-    # let updated_movement_wrong = should_work_updated_wrong.interpretJson
-    #                                                       .db_update(Movement, into = MovementTable)
+    let updated_movement_wrong = should_work_updated_wrong.interpretJson
+                                                          .db_update(Movement, into = MovementTable)
 
-    # echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
+    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
 
-    # echo "movement combo: ", movement_combo.interpretJson.db_create(MovementCombo, into = MovementComboTable)
+    echo "movement combo: ", movement_combo.interpretJson.db_create(MovementCombo, into = MovementComboTable)
 
-    # let mca_as = movement_combo_assignment.interpretJson
-    #                                     .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
-    # echo "movement combo assignment: ", mca_as
+    let mca_as = movement_combo_assignment.interpretJson
+                                        .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
+    echo "movement combo assignment: ", mca_as
 
-    # echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
-    #                                                 result = 
-    #                                                     MovementComboAssignment(kind: Existing,
-    #                                                                             id: j{"id"}.getInt,
-    #                                                                             movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
-    #                                                                                                             .to_existing(Movement),
-    #                                                                             movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
-    #                                                                                                             .to_existing(MovementCombo)
-    #                                                     )
-    #                                             )
+    echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
+                                                    result = 
+                                                        MovementComboAssignment(kind: Existing,
+                                                                                id: j{"id"}.getInt,
+                                                                                movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
+                                                                                                                .to_existing(Movement),
+                                                                                movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
+                                                                                                                .to_existing(MovementCombo)
+                                                        )
+                                                )
 
-    # var movement_table = RDB().table($MovementTable)
+    var movement_table = RDB().table($MovementTable)
 
-    # movement_table.insert(
-    #     movements.mapIt(it.to_json)
-    # )
-
-    # echo ring_pullup, split_squat
-
-    # for assi in assignments:
-    #     discard assi.db_create
-
-
-    
-    # for u in users:
-    #     discard u.db_create
+    movement_table.insert(
+        movements.mapIt(it.to_json)
+    )

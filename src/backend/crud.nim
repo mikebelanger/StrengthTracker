@@ -32,23 +32,16 @@ proc worked*(i: seq[JsonNode]): bool =
     return true
 
 
-proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User | Routine): JsonNode =
+proc to_json*(obj: Movement | MovementCombo | MovementComboAssignment | User | Routine | Session): JsonNode =
     var to_json = parseJson("{}")
 
     for key, val in obj.fieldPairs:
 
         if not restricted.contains(key):
 
-            to_json{key}= %($val)
+            to_json{key}= %*val
 
     return to_json
-
-
-proc to_json*(obj: Session): JsonNode =
-
-    result = %*{ "routine": obj.routine.to_json,
-                 "date": obj.date.format("yyyy-MM-dd") }
-
 
 proc get_foreign_keys*(j: JsonNode): JsonNode =
 
@@ -58,7 +51,7 @@ proc get_foreign_keys*(j: JsonNode): JsonNode =
 
         if key in foreign_prefixes:
 
-            result{key & "_id"}= j{key}{"id"}
+            result{key & "_id"}= j{key}.getOrDefault("id")
 
         else:
 
@@ -162,6 +155,15 @@ proc get_id*(j: JsonNode): int =
     
     return result
 
+proc to_Date*(dt: DateTime): Date =
+    
+    # TODO: add the times fields
+    result = Date(
+        Year: ord(dt.year),
+        Month: ord(dt.month),
+        Day: ord(dt.monthday)
+    )
+
 ##################
 #### CREATE ######
 ##################
@@ -205,20 +207,3 @@ proc db_read_from_id*(id: int, into: DataTable): JsonNode =
         echo getCurrentExceptionMsg()
 
     return result
-# if isMainModule:
-
-#     let 
-#         criteria = (
-#             symmetry: Bilateral,
-#             concentric_type: Push, 
-#         )
-
-    
-#     var results = MovementTable.db_connect
-#                                .query_matching_all(criteria)
-#                                .select("name")
-#                                .db_read
-#     echo results
-    # echo all
-    # echo any.len, all.len
-

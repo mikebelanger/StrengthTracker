@@ -1,6 +1,13 @@
-import times
-
 type
+    # cannot convert json datetimes -> nim's DAteTime's data structures (from times module)
+    # for more info, see here:
+    # https://forum.nim-lang.org/t/4106
+    # workaround - use our own custom date object
+
+    Date* = object
+        Year*, Month*, Day*, Hour*, Minute*, Second*: int
+        day_name: string # ie) "Tuesday"
+
     MovementPlane* = enum
         UnspecifiedPlane
         Horizontal
@@ -70,9 +77,11 @@ type
         user*: User
 
     Session* = object of Entry
-        date*: DateTime
+        date*: Date
         routine*: Routine
- 
+    
+    Minutes* = distinct int
+
     Set* = object of Entry
         movement*: Movement
         movement_combo*: MovementCombo
@@ -80,5 +89,5 @@ type
         tempo*: string
         intensity*: Intensity
         session*: Session
-        duration*: Duration
+        duration*: Minutes
         order*: int
