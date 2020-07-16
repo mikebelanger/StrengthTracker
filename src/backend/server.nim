@@ -5,7 +5,7 @@ import json
 import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
-import sequtils
+import sequtils, options
 import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
@@ -60,9 +60,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         let 
                             movement_creation = 
 
-                                # interpret json into sequence
-                                request.body.interpretJson
-                                            .db_create(Movement, into = MovementTable)
+                                request.body.db_create(Movement, into = MovementTable)
                             
                         if movement_creation.worked:
                             resp Http200, "Success"
@@ -73,21 +71,19 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                         let 
                             movement_table = MovementTable.db_connect
-                            existing_movement = 
-                                request.body.interpretJson
-                                .mapIt(it.get_id)
-                                .map(proc(id: int): JsonNode =
+                            id = request.body.to_json.get_id
 
-                                    result = movement_table.where("id", "=", id)
-                                                           .first
-                                )
+                        if id.isSome:
 
-                        # TODO: fix this for multiple movement creation
-                        case existing_movement.len:
-                            of 0:
-                                resp Http501, "nothing found"
-                            else:
-                                resp existing_movement[0]
+                            var movement_find = movement_table.where("id", "=", id.get).first
+
+                            if movement_find.worked:
+
+                                resp movement_find
+
+                        else:
+                            resp Http501, "nothing found"
+
 
                     of UpdateMovement:
 
@@ -95,8 +91,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             existing_movements_updated = 
                                 
                                 # Interpret incoming JSON, convert to an existing movement
-                                request.body.interpretJson
-                                            .db_update(Movement, into = MovementTable)
+                                request.body.db_update(Movement, into = MovementTable)
     
                         
                         if existing_movements_updated.worked:
@@ -111,8 +106,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         var 
                             movement_combo_creation = 
 
-                                request.body.interpretJson
-                                            .db_create(MovementCombo, into = MovementComboTable)
+                                request.body.db_create(MovementCombo, into = MovementComboTable)
 
                         if movement_combo_creation.worked:
 
@@ -127,8 +121,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         let
                             combo_assignment_creation =
                                 
-                                request.body.interpretJson
-                                            .db_create(MovementComboAssignment, MovementComboAssignmentTable)
+                                request.body.db_create(MovementComboAssignment, MovementComboAssignmentTable)
 
                         if combo_assignment_creation.worked:
 
