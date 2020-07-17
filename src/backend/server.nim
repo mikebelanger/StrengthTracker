@@ -25,6 +25,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         var all_movements = MovementTable.db_connect
                                                          .select()
                                                          .get()
+                                                         .into(Existing, Movement)
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
