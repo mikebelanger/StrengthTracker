@@ -42,7 +42,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of ReadAllUsers:
 
                         var all_users = UserTable.db_connect
-                                                 .select("name", "id", "email")
+                                                 .select
                                                  .get()
                                                  .into(Existing, User)
                         resp %*all_users
