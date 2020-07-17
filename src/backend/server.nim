@@ -101,7 +101,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             of 0:
                                 resp Http501, "Error updating movement"
                             else:
-                                resp Http200, "Movement updated successfully"                            
+                                resp %*existing_movements_updated                           
 
                     
                     of CreateMovementCombo:
@@ -117,7 +117,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             of 0:
                                 resp Http501, "Error updating movement"
                             else:
-                                resp Http200, "Movement updated successfully"                            
+                                resp %*movement_combo_creation                           
 
                     of CreateMovementComboAssignment:
 
@@ -131,7 +131,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             of 0:
                                 resp Http501, "Error updating movement"
                             else:
-                                resp Http200, "Movement updated successfully"                            
+                                resp %*combo_assignment_creation                            
 
 
             # I seem to only need GET and POST

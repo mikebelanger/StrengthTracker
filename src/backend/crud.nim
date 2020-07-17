@@ -53,6 +53,7 @@ proc to_json*(objs: seq[Movement] |
 
         except:
             echo getCurrentExceptionMsg()
+            continue
 
     return result
 
@@ -68,6 +69,7 @@ proc to_json*(ts: seq[tuple]): seq[JsonNode] =
 
         except:
             echo getCurrentExceptionMsg()
+            continue
 
     return result
 
@@ -93,6 +95,7 @@ proc get_foreign_keys*(js: seq[JsonNode]): seq[JsonNode] =
 
         except:
             echo getCurrentExceptionMsg()
+            continue
 
     return result
 
@@ -154,6 +157,7 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
 
         except:
             echo getCurrentExceptionMsg()
+            continue
 
     return result
 
@@ -178,19 +182,86 @@ proc to_Date*(dt: DateTime): Date =
         Day: ord(dt.monthday)
     )
 
+proc db_read_from_id*(ids: seq[int], into: DataTable): seq[JsonNode] =
+    result = @[]
+
+    for id in ids:
+        var js = parseJson("{}")
+
+        try:
+            js = into.db_connect.find(id)
+            result.add(js)
+
+        except:
+            echo getCurrentExceptionMsg()
+            continue
+
+    return result
+
+proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
+    result = @[]
+
+    for j in js:
+
+        try:
+            var return_j = parseJson("{}")
+
+            # loop through individual json object
+            for key in j.keys:
+                var foreign_id = j{key}.getInt
+
+                # if there's something like "movement_id", or "movement_combo_id"
+                if "_id" in key and foreign_id > 0:
+
+                    # assume we stick to table_name_id > table_name convention
+                    let 
+                        table_name = key.replace("_id", "")
+
+                        query = RDB().table(table_name)
+                                     .where("id", "=", foreign_id)
+                                     .get()
+                                     .add_foreign_objs
+
+                    for q in query:
+                        return_j{table_name}= q
+
+                # otherwise just copy over what's there
+                else:
+
+                    return_j{key} = j{key}
+
+            result.add(return_j)
+        
+        except:
+
+            echo getCurrentExceptionMsg()
+            continue
+
+    return result
+
+
+
 ##################
 #### CREATE ######
 ##################
 
-proc db_create*(s: string, t: typedesc, into: DataTable): seq[int] =
+proc db_create*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
     
+    result = @[]
+
     let 
         to_insert = s.to_json
                      .into(New, t)
                      .to_json
                      .get_foreign_keys
 
-        result = into.db_connect.insertID(to_insert)
+    try:
+        result = into.db_connect
+                     .insertID(to_insert)
+                     .db_read_from_id(into = into)
+                     .add_foreign_objs
+    except:
+        echo getCurrentExceptionMsg()
 
 
     return result
@@ -199,7 +270,7 @@ proc db_create*(s: string, t: typedesc, into: DataTable): seq[int] =
 #### UPDATE ######
 ##################
 
-proc db_update*(s: string, t: typedesc, into: DataTable): seq[int] =
+proc db_update*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
     
     result = s.to_json
               .into(Existing, t)
@@ -210,17 +281,7 @@ proc db_update*(s: string, t: typedesc, into: DataTable): seq[int] =
                     result = into.db_connect.where("id", "=", j{"id"}.getInt)
                                             .insertID(j)
               )
-
-    return result
-
-
-proc db_read_from_id*(id: int, into: DataTable): JsonNode =
-    result = parseJson("{}")
-
-    try:
-        result = into.db_connect.find(id)
-
-    except:
-        echo getCurrentExceptionMsg()
+              .db_read_from_id(into = into)
+              .add_foreign_objs
 
     return result
