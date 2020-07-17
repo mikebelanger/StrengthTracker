@@ -5,7 +5,7 @@ import json
 import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
-import sequtils, options
+import sequtils
 import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
@@ -62,10 +62,11 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 request.body.db_create(Movement, into = MovementTable)
                             
-                        if movement_creation.worked:
-                            resp Http200, "Success"
-                        else:
-                            resp Http501, "Failed"
+                        case movement_creation.len:
+                            of 0:
+                                resp Http501, "Failed"
+                            else:
+                                resp Http200, "Success"
 
                     of ReadMovement:
 
@@ -73,16 +74,17 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             movement_table = MovementTable.db_connect
                             id = request.body.to_json.get_id
 
-                        if id.isSome:
+                        case id.len:
 
-                            var movement_find = movement_table.where("id", "=", id.get).first
+                            of 0:
+                                resp Http501, "nothing found"
+                            
+                            else:
+                                var movement_find = movement_table.where("id", "=", id[0]).first
 
-                            if movement_find.worked:
-
-                                resp movement_find
-
-                        else:
-                            resp Http501, "nothing found"
+                                for m in movement_find:
+                                    resp movement_find
+                            
 
 
                     of UpdateMovement:
@@ -94,10 +96,12 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 request.body.db_update(Movement, into = MovementTable)
     
                         
-                        if existing_movements_updated.worked:
-                            resp Http200, "Movement updated successfully"
-                        else:
-                            resp Http501, "Error updating movement"
+                        case existing_movements_updated.len:
+
+                            of 0:
+                                resp Http501, "Error updating movement"
+                            else:
+                                resp Http200, "Movement updated successfully"                            
 
                     
                     of CreateMovementCombo:
@@ -108,13 +112,12 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 request.body.db_create(MovementCombo, into = MovementComboTable)
 
-                        if movement_combo_creation.worked:
+                        case movement_combo_creation.len:
 
-                            resp Http200, "Assignments created successfully"
-
-                        else:
-
-                            resp Http501, "Either no combo id or there's no movement ids"
+                            of 0:
+                                resp Http501, "Error updating movement"
+                            else:
+                                resp Http200, "Movement updated successfully"                            
 
                     of CreateMovementComboAssignment:
 
@@ -123,13 +126,12 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 
                                 request.body.db_create(MovementComboAssignment, MovementComboAssignmentTable)
 
-                        if combo_assignment_creation.worked:
+                        case combo_assignment_creation.len:
 
-                            resp Http200, "Assignment made"
-                        
-                        else:
-
-                            resp Http501, "Error creating assignment"
+                            of 0:
+                                resp Http501, "Error updating movement"
+                            else:
+                                resp Http200, "Movement updated successfully"                            
 
 
             # I seem to only need GET and POST

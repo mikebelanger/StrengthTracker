@@ -24,16 +24,16 @@ template loop_through_enum(input_enum: untyped, input_str) =
     
     return none(input_enum)
 
-proc get_movement_plane*(input_str: string): Option[MovementPlane] =
+proc get_movement_plane*(input_str: string): seq[MovementPlane] =
     loop_through_enum(MovementPlane, input_str)
 
-proc get_body_area*(input_str: string): Option[BodyArea] =
+proc get_body_area*(input_str: string): seq[BodyArea] =
     loop_through_enum(BodyArea, input_str)
 
-proc get_movement_type*(input_str: string): Option[MovementType] =
+proc get_movement_type*(input_str: string): seq[MovementType] =
     loop_through_enum(MovementType, input_str)
     
-proc get_movement_category*(input_str: string): Option[MovementCategory] =
+proc get_movement_category*(input_str: string): seq[MovementCategory] =
     loop_through_enum(MovementCategory, input_str)
 
 

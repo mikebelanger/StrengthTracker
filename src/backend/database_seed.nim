@@ -202,26 +202,26 @@ if isMainModule:
     # echo (%*session).to(Session)
 
     let mike_try = mike.db_create(User, into = UserTable)
-    echo "user", mike_try, mike_try.worked
+    echo "user", mike_try, mike_try.len
 
     let routine_try = routine.db_create(Routine, into = RoutineTable)
-    echo "routine try: ", routine_try, routine_try.worked 
+    echo "routine try: ", routine_try, routine_try.len 
 
     let session_try = ($session).db_create(Session, into = SessionTable)
-    echo "session try: ", session_try, session_try.worked
+    echo "session try: ", session_try, session_try.len
 
     let sort_of = sort_of_ok.db_create(Movement, into = MovementTable)
-    echo "sort_of", sort_of, sort_of.worked
+    echo "sort_of", sort_of, sort_of.len
 
     let new_movement = should_work.db_create(Movement, into = MovementTable)
-    echo "movement", new_movement, new_movement.worked
+    echo "movement", new_movement, new_movement.len
 
     let updated_movement = should_work_updated.db_update(Movement, into = MovementTable)
-    echo "updated movement: ", updated_movement, updated_movement.worked
+    echo "updated movement: ", updated_movement, updated_movement.len
 
     let updated_movement_wrong = should_work_updated_wrong.db_update(Movement, into = MovementTable)
 
-    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.worked
+    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.len
 
     echo "movement combo: ", movement_combo.db_create(MovementCombo, into = MovementComboTable)
 

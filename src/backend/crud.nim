@@ -1,7 +1,7 @@
 import ../app_types, database_schema
 import allographer/query_builder
 import json
-import sequtils, strutils, options
+import sequtils, strutils
 import times
 
 const restricted = @[
@@ -19,91 +19,82 @@ const foreign_prefixes = @[
 #### HELPERS ####
 #################
 
-proc exists*(i: int): bool =
-    i > 0
+proc to_json*(input: string): seq[JsonNode] =
+    result = @[]
 
-proc worked*(i: int): bool =
-    i > 0
-
-proc worked*(i: Option[int]): bool =
-    if i.isSome:
-        return false
-    elif i.get < 1:
-        return false
-    else:
-        return true
-
-proc worked*(i: JsonNode): bool =
-    if i.getOrDefault("id").getInt > 0:
-        return true
-    else:
-        return false
-
-proc worked*(i: seq[JsonNode]): bool =
-    if i.len == 0:
-        return false
-
-    elif i.anyIt(it{"id"}.getInt <= 0):
-        return false
-
-    return true
-
-proc to_json*(input: string): Option[JsonNode] =
     try:
-        result = input.parseJson.some
+        result.add(input.parseJson)
     except:
         echo getCurrentExceptionMsg()
-        result = JsonNode.none
 
     return result
 
-proc to_json*(obj: Option[Movement] | 
-                   Option[MovementCombo] | 
-                   Option[MovementComboAssignment] | 
-                   Option[User] | 
-                   Option[Session] |
-                   Option[Routine]): Option[JsonNode] =
+proc to_json*(objs: seq[Movement] | 
+                        seq[MovementCombo] | 
+                        seq[MovementComboAssignment] | 
+                        seq[User] | 
+                        seq[Session] |
+                        seq[Routine]): seq[JsonNode] =
 
-    if obj.isSome:
+    result = @[]
+
+    for obj in objs:
 
         var to_json = parseJson("{}")
 
         try:
-            for key, val in obj.get.fieldPairs:
+            for key, val in obj.fieldPairs:
 
                 if not restricted.contains(key):
                     
                     to_json{key}= %*val
 
-            return to_json.some
+            result.add(to_json)
 
         except:
             echo getCurrentExceptionMsg()
-            return JsonNode.none
 
+    return result
 
 # For some reason I can't override the `%*` template for tuples
-proc to_json*(t: tuple): JsonNode =
-    result = parseJson("{}")
-    for key, val in t.fieldPairs:
-        result{key}= %val
+proc to_json*(ts: seq[tuple]): seq[JsonNode] =
+    result = @[]
 
-proc get_foreign_keys*(j: Option[JsonNode]): Option[JsonNode] =
+    for t in ts:
+        try:
+            var jnode = parseJson("{}")
+            for key, val in t.fieldPairs:
+                result.add(jnode{key}= %val)
 
-    if j.isSome:
-        var to_return = parseJson("{}")
-        for key in j.get.keys:
-            
-            if key in foreign_prefixes:
+        except:
+            echo getCurrentExceptionMsg()
 
-                to_return{key & "_id"}= j.get{key}.getOrDefault("id")
+    return result
 
-            else:
+proc get_foreign_keys*(js: seq[JsonNode]): seq[JsonNode] =
+    result = @[]
 
-                to_return{key}= j.get{key}
+    for j in js: 
 
-        result = to_return.some
+        try:
 
+            var to_return = parseJson("{}")
+            for key in j.keys:
+                
+                if key in foreign_prefixes:
+
+                    to_return{key & "_id"}= j{key}.getOrDefault("id")
+
+                else:
+
+                    to_return{key}= j{key}
+
+            result.add(to_return)
+
+        except:
+            echo getCurrentExceptionMsg()
+
+    return result
 
 # convenience function for when querying an equals with an orWhere
 proc query_matching_any*(table: RDB, criteria: tuple): RDB =
@@ -143,42 +134,40 @@ proc is_complete*(x: object): bool =
 
     return true
 
-proc into*(j: Option[JsonNode], e: EntryKind, t: typedesc): Option[t] =
-    
-    if j.isSome:
+proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
+    result = @[]
+
+    for j in js: 
         var to_convert = parseJson("{}")
         to_convert{"kind"}= %e
 
         try:
-            for key in j.get.keys:
+            for key in j.keys:
                 
                 if not restricted.contains(key):
-                    to_convert{key}= %*j.get{key}
+                    to_convert{key}= %*j{key}
 
             var obj =  to_convert.to(t)
 
             if obj.is_complete:
-                result = obj.some
-            else:
-                result = none(t)
+                result.add(obj)
+
         except:
             echo getCurrentExceptionMsg()
-            result = none(t)
 
-        return result
+    return result
 
 
-proc get_id*(j: Option[JsonNode]): Option[int] =
 
-    if j.isSome:
+proc get_id*(js: seq[JsonNode]): seq[int] =
+
+    result = @[]
+
+    for j in js:
         try:
-            result = j.get{"id"}.getInt.some
+            result.add(j{"id"}.getInt)
         except:
             echo getCurrentExceptionMsg()
-            result = int.none
-
-    else:
-        return int.none
 
 proc to_Date*(dt: DateTime): Date =
     
@@ -193,31 +182,37 @@ proc to_Date*(dt: DateTime): Date =
 #### CREATE ######
 ##################
 
-proc db_create*(s: string, t: typedesc, into: DataTable): int =
+proc db_create*(s: string, t: typedesc, into: DataTable): seq[int] =
     
-    let insert = s.to_json
-                  .into(New, t)
-                  .to_json
-                  .get_foreign_keys
+    result = s.to_json
+              .into(New, t)
+              .to_json
+              .get_foreign_keys
+              .map(proc (j: JsonNode): int =
 
-    if insert.isSome:
-        result = into.db_connect.insertID(insert.get)
+                    result = into.db_connect.insertID(j)
 
+               )
+
+    return result
 
 ##################
 #### UPDATE ######
 ##################
 
-proc db_update*(s: string, t: typedesc, into: DataTable): int =
+proc db_update*(s: string, t: typedesc, into: DataTable): seq[int] =
     
-    let insert = s.to_json
-                    .into(Existing, t)
-                    .to_json
-                    .get_foreign_keys
+    result = s.to_json
+              .into(Existing, t)
+              .to_json
+              .get_foreign_keys
+              .map(proc (j: JsonNode): int =
 
-    if insert.isSome:
-        result = into.db_connect.where("id", "=", insert.get{"id"}.getInt)
-                                .insertID(insert.get)
+                    result = into.db_connect.where("id", "=", j{"id"}.getInt)
+                                            .insertID(j)
+              )
+
+    return result
 
 
 proc db_read_from_id*(id: int, into: DataTable): JsonNode =
