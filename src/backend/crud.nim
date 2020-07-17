@@ -146,11 +146,18 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
 
         try:
             for key in j.keys:
-                
-                if not restricted.contains(key):
-                    to_convert{key}= %*j{key}
 
-            var obj =  to_convert.to(t)
+                case e:
+                    of New:
+                        
+                        if not restricted.contains(key):
+                            to_convert{key}= %*j{key}
+
+                    of Existing:
+
+                        to_convert{key}= %*j{key}
+
+            var obj = to_convert.to(t)
 
             if obj.is_complete:
                 result.add(obj)

@@ -42,10 +42,9 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of ReadAllUsers:
 
                         var all_users = UserTable.db_connect
-                                                 .select()
+                                                 .select("name", "id", "email")
                                                  .get()
-
-                        echo all_users
+                                                 .into(Existing, User)
                         resp %*all_users
 
                     else:
