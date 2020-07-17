@@ -184,15 +184,14 @@ proc to_Date*(dt: DateTime): Date =
 
 proc db_create*(s: string, t: typedesc, into: DataTable): seq[int] =
     
-    result = s.to_json
-              .into(New, t)
-              .to_json
-              .get_foreign_keys
-              .map(proc (j: JsonNode): int =
+    let 
+        to_insert = s.to_json
+                     .into(New, t)
+                     .to_json
+                     .get_foreign_keys
 
-                    result = into.db_connect.insertID(j)
+        result = into.db_connect.insertID(to_insert)
 
-               )
 
     return result
 
