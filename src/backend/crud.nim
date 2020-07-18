@@ -30,11 +30,11 @@ proc to_json*(input: string): seq[JsonNode] =
     return result
 
 proc to_json*(objs: seq[Movement] | 
-                        seq[MovementCombo] | 
-                        seq[MovementComboAssignment] | 
-                        seq[User] | 
-                        seq[Session] |
-                        seq[Routine]): seq[JsonNode] =
+                    seq[MovementCombo] | 
+                    seq[MovementComboAssignment] | 
+                    seq[User] | 
+                    seq[Session] |
+                    seq[Routine]): seq[JsonNode] =
 
     result = @[]
 
