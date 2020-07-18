@@ -225,8 +225,7 @@ if isMainModule:
 
     echo "movement combo: ", movement_combo.db_create(MovementCombo, into = MovementComboTable)
 
-    let mca_as = movement_combo_assignment
-                                        .db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
+    let mca_as = movement_combo_assignment.db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
     echo "movement combo assignment: ", mca_as
 
     # echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =

@@ -13,9 +13,12 @@ const
     CreateMovement* = "/create_movement.json"
     CreateMovementCombo* = "/create_movement_combo.json"
     CreateMovementComboAssignment* = "/create_movement_combo_assignment.json"
+    CreateSession* = "/create_session.json"
     
     # Read
     ReadMovement* = "/read_movement.json"
+    ReadRoutine* = "read_routine.json"
+    ReadSession* = "/read_session.json"
 
     # Update
     UpdateMovement* = "/update_movement.json"

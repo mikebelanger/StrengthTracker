@@ -70,22 +70,16 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                     of ReadMovement:
 
-                        let 
-                            movement_table = MovementTable.db_connect
-                            id = request.body.to_json.get_id
+                        let movement_read = request.body.db_read(Movement, from_table = MovementTable)
 
-                        case id.len:
+                        case movement_read.len:
 
                             of 0:
                                 resp Http501, "nothing found"
                             
                             else:
-                                var movement_find = movement_table.where("id", "=", id[0]).first
-
-                                for m in movement_find:
-                                    resp movement_find
+                                resp %*movement_read
                             
-
 
                     of UpdateMovement:
 
@@ -131,7 +125,61 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             of 0:
                                 resp Http501, "Error updating movement"
                             else:
-                                resp %*combo_assignment_creation                            
+                                resp %*combo_assignment_creation
+
+                    of CreateSession:
+
+                        let session_created =
+                            request.body.db_create(Session, into = SessionTable)
+
+                        case session_created.len:
+                            of 0:
+                                resp Http501, "Could not load session"
+                            else:
+                                resp %*session_created                   
+
+                    of ReadSession:
+
+                        let session =
+                            request.body.db_read(Session, from_table = SessionTable)
+
+                        case session.len:
+                            of 0:
+                                resp Http501, "Could not load session"
+                            else:
+                                resp %*session                   
+
+
+                    of ReadRoutine:
+
+                        # in addition to reading the routine, this loads the routine
+                        # assignments associated to this particula routine, for convenience.
+
+                        let routines = 
+                            request.body.db_read(Routine, from_table = RoutineTable)
+                                        .into(Existing, Routine)
+                                        .map(proc (routine: Routine): seq[JsonNode] =
+
+                                            let result = 
+                                                RoutineAssignmentTable
+                                                        .db_connect
+                                                        .query_matching_all(
+                                                            (routine_id: routine.id)
+                                                        )
+                                                        .orderBy("order", Asc)
+                                                        .get()
+                                                        .add_foreign_objs
+
+                                        )
+                                        .concat
+                                        .into(Existing, RoutineAssignment)
+                                
+                        case routines.len:
+
+                            of 0:
+                                resp Http501, "Error reading routine assignments"
+                            else:
+                                resp %*routines      
 
 
             # I seem to only need GET and POST

@@ -274,6 +274,33 @@ proc db_create*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
     return result
 
 ##################
+###### READ ######
+##################
+
+proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[JsonNode] =
+    
+    result = @[]
+
+    try:
+
+        result = s.to_json
+                  .get_id
+                  .map(proc (id: int): seq[JsonNode] =
+
+                    result = from_table.db_connect
+                                       .where("id", "=", id)
+                                       .get()
+                                       .add_foreign_objs
+                  )
+                  .concat
+
+    except:
+        echo getCurrentExceptionMsg()
+
+
+    return result
+
+##################
 #### UPDATE ######
 ##################
 

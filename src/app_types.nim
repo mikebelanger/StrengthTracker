@@ -55,12 +55,26 @@ type
         symmetry*: Symmetry
         description*: string
 
+    Session* = object of Entry
+        date*: Date
+        routine*: Routine
+
     MovementCombo* = object of Entry
         name*: string
+
+    Routine* = object of Entry
+        name*: string
+        active*: bool
+        user*: User
 
     MovementComboAssignment* = object of Entry
         movement*: Movement
         movement_combo*: MovementCombo
+
+    RoutineAssignment* = object of Entry
+        movement_combo*: MovementCombo
+        routine*: Routine
+        order*: int
 
     IntensityUnits* = enum
         UnspecifiedIntensityUnit
@@ -71,15 +85,7 @@ type
     Intensity* = object of Entry
         quantity*: float32
         intensity*: IntensityUnits
-
-    Routine* = object of Entry
-        name*: string
-        user*: User
-
-    Session* = object of Entry
-        date*: Date
-        routine*: Routine
-    
+            
     Minutes* = distinct int
 
     Set* = object of Entry
