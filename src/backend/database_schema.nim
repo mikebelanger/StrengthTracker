@@ -1,5 +1,6 @@
 import db_sqlite
 import allographer/schema_builder
+import sequtils
 
 type
     DataTable* = enum

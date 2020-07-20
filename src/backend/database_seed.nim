@@ -196,50 +196,42 @@ let
     )
 
 if isMainModule:
+    # echo @[movement_combo_assignment.parseJson].into(New, MovementComboAssignment)
     # echo session
     # echo session.to_json
     # echo $session.to_json
     # echo ($session.to_json).interpretJson
     # echo (%*session).to(Session)
 
-    let mike_try = mike.db_create(User, into = UserTable)
-    echo "user", mike_try, mike_try.len
+    # let mike_try = mike.db_create(User, into = UserTable)
+    # echo "user", mike_try, mike_try.len
 
-    let routine_try = routine.db_create(Routine, into = RoutineTable)
-    echo "routine try: ", routine_try, routine_try.len 
+    # let routine_try = routine.db_create(Routine, into = RoutineTable)
+    # echo "routine try: ", routine_try, routine_try.len 
 
-    let session_try = ($session).db_create(Session, into = SessionTable)
-    echo "session try: ", session_try, session_try.len
+    # let session_try = ($session).db_create(Session, into = SessionTable)
+    # echo "session try: ", session_try, session_try.len
 
-    let sort_of = sort_of_ok.db_create(Movement, into = MovementTable)
-    echo "sort_of", sort_of, sort_of.len
+    # let sort_of = sort_of_ok.db_create(Movement, into = MovementTable)
+    # echo "sort_of", sort_of, sort_of.len
 
     let new_movement = should_work.db_create(Movement, into = MovementTable)
     echo "movement", new_movement, new_movement.len
 
-    let updated_movement = should_work_updated.db_update(Movement, into = MovementTable)
-    echo "updated movement: ", updated_movement, updated_movement.len
+    # let updated_movement = should_work_updated.db_update(Movement, into = MovementTable)
+    # echo "updated movement: ", updated_movement, updated_movement.len
 
-    let updated_movement_wrong = should_work_updated_wrong.db_update(Movement, into = MovementTable)
+    # let updated_movement_wrong = should_work_updated_wrong.db_update(Movement, into = MovementTable)
 
-    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.len
+    # echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.len
 
     echo "movement combo: ", movement_combo.db_create(MovementCombo, into = MovementComboTable)
 
     let mca_as = movement_combo_assignment.db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
     echo "movement combo assignment: ", mca_as
 
-    # echo "movement_combo_reformed: ", mca_as.map(proc(j: JsonNode): MovementComboAssignment =
-    #                                                 result = 
-    #                                                     MovementComboAssignment(kind: Existing,
-    #                                                                             id: j{"id"}.getInt,
-    #                                                                             movement: j{"movement_id"}.getInt.db_read_from_id(into = MovementTable)
-    #                                                                                                             .to_existing(Movement),
-    #                                                                             movement_combo: j{"movement_combo_id"}.getInt.db_read_from_id(into = MovementComboTable)
-    #                                                                                                             .to_existing(MovementCombo)
-    #                                                     )
-    #                                             )
 
-    let movements_created = movements.mapIt(($(%*it)).db_create(Movement, into = MovementTable))
+    # for m in movements:
+    #     echo ($(%*m)).db_create(Movement, into = MovementTable)
 
-    echo movements_created
+    echo "made it to end of thing"

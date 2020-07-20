@@ -8,11 +8,7 @@ const restricted = @[
     "kind"
 ]
 
-const foreign_prefixes = @[
-    "movement",
-    "movement_combo",
-    "user"
-]
+const foreign_prefixes = DataTable.mapIt($it)
 
 #################
 #### HELPERS ####
@@ -150,6 +146,7 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
                     of New:
                         
                         if not restricted.contains(key):
+
                             to_convert{key}= %*j{key}
 
                     of Existing:
@@ -162,7 +159,7 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
                 result.add(obj)
 
         except:
-            echo getCurrentExceptionMsg()
+            echo "into error: ", getCurrentExceptionMsg()
             continue
 
     return result
@@ -208,40 +205,38 @@ proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
 
     for j in js:
 
-        try:
-            var return_j = parseJson("{}")
+        var return_j = parseJson("{}")
 
-            # loop through individual json object
-            for key in j.keys:
-                var foreign_id = j{key}.getInt
+        # loop through individual json object
+        for key in j.keys:
 
-                # if there's something like "movement_id", or "movement_combo_id"
-                if "_id" in key and foreign_id > 0:
+            # if there's something like "movement_id", or "movement_combo_id"
+            if "_id" in key and not j{key}.isNil:
+                if j{key}.getInt > 0:
 
                     # assume we stick to table_name_id > table_name convention
                     let 
                         table_name = key.replace("_id", "")
 
                         query = RDB().table(table_name)
-                                     .where("id", "=", foreign_id)
-                                     .get()
-                                     .add_foreign_objs
+                                    .where("id", "=", j{key}.getInt)
+                                    .get()
+                                    .add_foreign_objs
 
+                    # add any objects from query into our attribute.  Should be for any nested object
                     for q in query:
                         return_j{table_name}= q
 
-                # otherwise just copy over what's there
-                else:
+                    # safe to assume we only want existing objects, so add it as "Existing"
+                    return_j{table_name}{"kind"}= %"Existing"
 
-                    return_j{key} = j{key}
+            # otherwise just copy over what's there
+            else:
 
-            result.add(return_j)
+                return_j{key} = j{key}
+
+        result.add(return_j)
         
-        except:
-
-            echo getCurrentExceptionMsg()
-            continue
-
     return result
 
 
