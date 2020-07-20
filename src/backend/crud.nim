@@ -5,7 +5,6 @@ import sequtils, strutils
 import times
 
 const restricted = @[
-    "id",
     "kind"
 ]
 
@@ -280,15 +279,12 @@ proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[t] =
     
     result = @[]
 
-    echo s
-
     try:
 
         result = s.to_json
                   .get_id
                   .map(proc (id: int): seq[JsonNode] =
 
-                    echo "id: ", id
 
                     result = from_table.db_connect
                                        .where("id", "=", id)
@@ -314,12 +310,17 @@ proc db_update*(s: string, t: typedesc, into: DataTable): seq[t] =
               .into(Existing, t)
               .to_json
               .get_foreign_keys
-              .map(proc (j: JsonNode): int =
+              .map(proc (j: JsonNode): JsonNode =
 
-                    result = into.db_connect.where("id", "=", j{"id"}.getInt)
-                                            .insertID(j)
+                    try:
+                        into.db_connect.where("id", "=", j{"id"}.getInt)
+                                       .update(j)
+
+                        result = j
+
+                    except:
+                        echo getCurrentExceptionMsg()
               )
-              .db_read_from_id(into = into)
               .add_foreign_objs
               .into(Existing, t)
 

@@ -50,12 +50,13 @@ proc readMovement(id: int) =
         case status:
             of 200:
                 echo "parsing movement: ", $resp
-                var new_movement = parseJson($resp).to(Movement)
+                var new_movement = parseJson($resp).mapIt(it.to(Movement))
 
                 for i, movement in all_movements:
-
-                    if movement.id == new_movement.id:
-                        all_movements[i] = new_movement
+                    
+                    for idx, new_m in new_movement:
+                        if movement.id == new_m.id:
+                            all_movements[i] = new_m
 
             else:
                 echo "unexpected response: ", status
