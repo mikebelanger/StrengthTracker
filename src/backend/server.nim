@@ -5,7 +5,7 @@ import json
 import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
-import sequtils
+import sequtils, strutils
 import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
@@ -27,17 +27,6 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                                          .get()
                                                          .into(Existing, Movement)
                         resp %*all_movements
-
-                    of ReadAllMovementAttrs:
-
-                        let response = 
-                            %*{ "planes" : MovementPlane.mapIt($it),
-                                "areas"  : MovementArea.mapIt($it),
-                                "concentric_types" : ConcentricType.mapIt($it),
-                                "symmetries": Symmetry.mapIt($it)
-                            }
-
-                        resp response
 
                     of ReadAllUsers:
 

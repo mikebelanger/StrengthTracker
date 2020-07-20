@@ -15,10 +15,10 @@ var
     all_movements: seq[Movement]
     current_user: User
     all_users = @[User(name: "Another user", email: "anotheruser@email.com")]
-    planes: seq[string]
-    areas: seq[string]
-    concentric_types: seq[string]
-    symmetries: seq[string]
+    planes = MovementPlane.mapIt($it).filterIt(it.contains("Unspecified") == false)
+    areas = MovementArea.mapIt($it).filterIt(it.contains("Unspecified") == false)
+    concentric_types = ConcentricType.mapIt($it).filterIt(it.contains("Unspecified") == false)
+    symmetries = Symmetry.mapIt($it).filterIt(it.contains("Unspecified") == false)
 
 proc switchTo(p: PageMode) =
     pageMode = p
@@ -68,20 +68,6 @@ proc readAllMovements() =
         all_movements = parseJson($resp).mapIt(it.to(Movement))
     )
     
-proc readDistinctMovementAttributes() =
-    ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
-        var parsed = parseJson($resp)
-
-        planes = parsed{"planes"}.getElems.mapIt(it.str)
-        areas = parsed{"areas"}.getElems.mapIt(it.str)
-        concentric_types = parsed{"concentric_types"}.getElems.mapIt(it.str)
-        symmetries = parsed{"symmetries"}.getElems.mapIt(it.str)
-    )
-
-proc readMovementsAndDistinctAttributes() =
-    readAllMovements()
-    readDistinctMovementAttributes()
-
 proc getJsonValue(input: cstring, key: string): cstring =
     var json_node = JsonNode(parseJson($input))
     return json_node[key].getStr()
@@ -217,7 +203,7 @@ proc render(): VNode =
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
                                 text "Start the workout"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readMovementsAndDistinctAttributes)):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readAllMovements)):
                                 text "Look at Exercise Options"
 
                         of ManageMovements:
