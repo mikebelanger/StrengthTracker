@@ -29,14 +29,13 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         resp %*all_movements
 
                     of ReadAllMovementAttrs:
-                        let 
-                            movement_table = MovementTable.db_connect
-                            attributes = @["plane", "area", "concentric_type", "symmetry"]
 
-                        var response = parseJson("{}")
-
-                        for attr in attributes:
-                            response{"all_" & attr} = %*movement_table.select(attr).distinct().get().mapIt(it{attr})
+                        let response = 
+                            %*{ "planes" : MovementPlane.mapIt($it),
+                                "areas"  : MovementArea.mapIt($it),
+                                "concentric_types" : ConcentricType.mapIt($it),
+                                "symmetries": Symmetry.mapIt($it)
+                            }
 
                         resp response
 

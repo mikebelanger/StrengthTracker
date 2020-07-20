@@ -20,8 +20,6 @@ var
     concentric_types: seq[string]
     symmetries: seq[string]
 
-# template show_for(t: Seconds, stmts: untyped) = 
-#     window.setTimeout(code = stmts, pause: t)
 proc switchTo(p: PageMode) =
     pageMode = p
 
@@ -30,7 +28,6 @@ proc switchTo(p: PageMode, cb: proc) =
     pageMode = p
 
 proc read_all_users() =
-    echo "read_all_users getting called"
              
     ajaxGet(url = $ReadAllUsers, headers = @[], proc(status: int, resp: cstring) =
         case status:
@@ -52,6 +49,7 @@ proc readMovement(id: int) =
     ajaxPost(url = $ReadMovement, headers = @[], data = $submit_data, proc (status: int, resp: cstring) =
         case status:
             of 200:
+                echo "parsing movement: ", $resp
                 var new_movement = parseJson($resp).to(Movement)
 
                 for i, movement in all_movements:
@@ -73,10 +71,10 @@ proc readDistinctMovementAttributes() =
     ajaxGet(url = $ReadAllMovementAttrs, headers = @[], proc (status: int, resp: cstring) =
         var parsed = parseJson($resp)
 
-        planes = parsed{"all_plane"}.getElems.mapIt(it.str)
-        areas = parsed{"all_area"}.getElems.mapIt(it.str)
-        concentric_types = parsed{"all_concentric_type"}.getElems.mapIt(it.str)
-        symmetries = parsed{"all_symmetry"}.getElems.mapIt(it.str)
+        planes = parsed{"planes"}.getElems.mapIt(it.str)
+        areas = parsed{"areas"}.getElems.mapIt(it.str)
+        concentric_types = parsed{"concentric_types"}.getElems.mapIt(it.str)
+        symmetries = parsed{"symmetries"}.getElems.mapIt(it.str)
     )
 
 proc readMovementsAndDistinctAttributes() =
@@ -155,7 +153,6 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
             submit_movement = %*movement
 
         ajaxPost(url = $UpdateMovement, headers = @[], data = $submit_movement, proc (status: int, resp: cstring) =
-            echo ($status, $resp)
             
             if status == 200:
                 readMovement(id = movement.id)

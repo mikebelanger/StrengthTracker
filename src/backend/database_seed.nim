@@ -178,6 +178,7 @@ let
     routine = """
         { "kind" : "New",
           "name" : "Mikes current routine - strength",
+          "active" : true,
           "user" : {
                     "kind" : "Existing",
                     "id" : 1,
@@ -239,8 +240,6 @@ if isMainModule:
     #                                                     )
     #                                             )
 
-    # var movement_table = RDB().table($MovementTable)
+    let movements_created = movements.mapIt(($(%*it)).db_create(Movement, into = MovementTable))
 
-    # movement_table.insert(
-    #     movements.mapIt(it.to_json)
-    # )
+    echo movements_created
