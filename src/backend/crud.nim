@@ -169,7 +169,6 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
     return result
 
 
-
 proc get_id*(js: seq[JsonNode]): seq[int] =
 
     result = @[]
@@ -247,12 +246,11 @@ proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
     return result
 
 
-
 ##################
 #### CREATE ######
 ##################
 
-proc db_create*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
+proc db_create*(s: string, t: typedesc, into: DataTable): seq[t] =
     
     result = @[]
 
@@ -267,6 +265,7 @@ proc db_create*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
                      .insertID(to_insert)
                      .db_read_from_id(into = into)
                      .add_foreign_objs
+                     .into(Existing, t)
     except:
         echo getCurrentExceptionMsg()
 
@@ -277,9 +276,11 @@ proc db_create*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
 ###### READ ######
 ##################
 
-proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[JsonNode] =
+proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[t] =
     
     result = @[]
+
+    echo s
 
     try:
 
@@ -287,12 +288,15 @@ proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[JsonNode] =
                   .get_id
                   .map(proc (id: int): seq[JsonNode] =
 
+                    echo "id: ", id
+
                     result = from_table.db_connect
                                        .where("id", "=", id)
                                        .get()
                                        .add_foreign_objs
                   )
                   .concat
+                  .into(Existing, t)
 
     except:
         echo getCurrentExceptionMsg()
@@ -304,7 +308,7 @@ proc db_read*(s: string, t: typedesc, from_table: DataTable): seq[JsonNode] =
 #### UPDATE ######
 ##################
 
-proc db_update*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
+proc db_update*(s: string, t: typedesc, into: DataTable): seq[t] =
     
     result = s.to_json
               .into(Existing, t)
@@ -317,5 +321,6 @@ proc db_update*(s: string, t: typedesc, into: DataTable): seq[JsonNode] =
               )
               .db_read_from_id(into = into)
               .add_foreign_objs
+              .into(Existing, t)
 
     return result

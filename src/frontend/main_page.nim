@@ -13,6 +13,7 @@ var
     movement_left_blank = false
     pageMode = Login
     all_movements: seq[Movement]
+    current_user: User
     all_users = @[User(name: "Another user", email: "anotheruser@email.com")]
     planes: seq[string]
     areas: seq[string]
@@ -184,6 +185,16 @@ proc optionsMenu(name, message: cstring, selected = "", options: seq[string]): V
                                 option(value = option):
                                     text option
 
+proc login(user: User) =
+    ajaxPost(ReadUser, headers = @[], data = $(%*user), proc (status: int, resp: cstring) =
+
+        if status == 200:
+
+            for u in ($resp).parseJson:
+                current_user = u.to(User)
+    )
+    switchTo(UserMainPage)
+
 
 proc render(): VNode =
     
@@ -197,13 +208,13 @@ proc render(): VNode =
                         of Login:
                             span(class = "ph2 tc m5"):      
                                 for user in all_users:
-                                    a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10"):
+                                    a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => login(user)):
                                         text user.name
 
 
                         of UserMainPage:
 
-                            createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome!")
+                            createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome, " & current_user.name)
                         
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
                                 text "Start the workout"

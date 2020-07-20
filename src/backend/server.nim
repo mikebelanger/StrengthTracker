@@ -149,6 +149,17 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             else:
                                 resp %*session                   
 
+                    of ReadUser:
+
+                        let user =
+                            request.body.db_read(User, from_table = UserTable)
+
+                        case user.len:
+                            of 0:
+                                resp Http501, "Could not load user"
+                            else:
+                                resp %*user                   
+
 
                     of ReadRoutine:
 
@@ -157,7 +168,6 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                         let routines = 
                             request.body.db_read(Routine, from_table = RoutineTable)
-                                        .into(Existing, Routine)
                                         .map(proc (routine: Routine): seq[JsonNode] =
 
                                             let result = 

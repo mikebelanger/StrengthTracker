@@ -16,6 +16,7 @@ const
     CreateSession* = "/create_session.json"
     
     # Read
+    ReadUser* = "/read_user.json"
     ReadMovement* = "/read_movement.json"
     ReadRoutine* = "read_routine.json"
     ReadSession* = "/read_session.json"
