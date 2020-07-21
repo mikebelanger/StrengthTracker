@@ -45,6 +45,7 @@ let
     routine_table = [
         Column().increments("id"),
         Column().string("name").unique(),
+        Column().boolean("active"),
         Column().foreign("user_id").reference("id").on($UserTable).onDelete(SET_NULL)
     ]
 
@@ -87,9 +88,9 @@ if isMainModule:
         table($MovementTable, movement_table),
         table($MovementComboTable, movement_combo_table),
         table($MovementComboAssignmentTable, movement_combo_assignment_table),
-        table($RoutineTable, routine_assignment_table),
-        table($IntensityTable, intensity_table),
         table($RoutineTable, routine_table),
+        table($RoutineAssignmentTable, routine_assignment_table),
+        table($IntensityTable, intensity_table),
         table($SessionTable, session_table),
         table($SetTable, set_table)
     ])

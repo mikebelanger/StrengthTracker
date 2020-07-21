@@ -189,11 +189,6 @@ let
 
     """
 
-    session = Session(
-        kind: New,
-        date: now().to_Date,
-        routine: routine.parseJson.to(Routine)
-    )
 
 if isMainModule:
     # echo @[movement_combo_assignment.parseJson].into(New, MovementComboAssignment)
@@ -203,35 +198,55 @@ if isMainModule:
     # echo ($session.to_json).interpretJson
     # echo (%*session).to(Session)
 
-    # let mike_try = mike.db_create(User, into = UserTable)
-    # echo "user", mike_try, mike_try.len
+    let mike_try = mike.db_create(User, into = UserTable)
+    echo "user", mike_try, mike_try.len
 
-    # let routine_try = routine.db_create(Routine, into = RoutineTable)
-    # echo "routine try: ", routine_try, routine_try.len 
+    let routine_try = routine.db_create(Routine, into = RoutineTable)
+    echo "routine try: ", routine_try, routine_try.len 
 
-    # let session_try = ($session).db_create(Session, into = SessionTable)
-    # echo "session try: ", session_try, session_try.len
 
-    # let sort_of = sort_of_ok.db_create(Movement, into = MovementTable)
-    # echo "sort_of", sort_of, sort_of.len
+    let sort_of = sort_of_ok.db_create(Movement, into = MovementTable)
+    echo "sort_of", sort_of, sort_of.len
 
     let new_movement = should_work.db_create(Movement, into = MovementTable)
     echo "movement", new_movement, new_movement.len
 
-    # let updated_movement = should_work_updated.db_update(Movement, into = MovementTable)
-    # echo "updated movement: ", updated_movement, updated_movement.len
+    let updated_movement = should_work_updated.db_update(Movement, into = MovementTable)
+    echo "updated movement: ", updated_movement, updated_movement.len
 
-    # let updated_movement_wrong = should_work_updated_wrong.db_update(Movement, into = MovementTable)
+    let updated_movement_wrong = should_work_updated_wrong.db_update(Movement, into = MovementTable)
 
-    # echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.len
+    echo "updated movement wrong: ", updated_movement_wrong, updated_movement_wrong.len
 
-    echo "movement combo: ", movement_combo.db_create(MovementCombo, into = MovementComboTable)
+    let movement_combo_obj = movement_combo.db_create(MovementCombo, into = MovementComboTable)
+    echo "movement combo: ", movement_combo_obj
 
     let mca_as = movement_combo_assignment.db_create(MovementComboAssignment, into = MovementComboAssignmentTable)
     echo "movement combo assignment: ", mca_as
 
+    let routine_combo_assignment = RoutineAssignment(
+        movement_combo: movement_combo_obj[0],
+        routine: routine_try[0],
+        order: 1
+    )
 
-    # for m in movements:
-    #     echo ($(%*m)).db_create(Movement, into = MovementTable)
+    let routine_created = ($(%*routine_combo_assignment)).db_create(RoutineAssignment, into = RoutineAssignmentTable)
+
+    for r in routine_created:
+        echo "routine: ", r
+
+    let session = Session(
+        kind: New,
+        date: now().to_Date,
+        routine: routine.parseJson.to(Routine)
+    )
+
+    let session_try = ($session).db_create(Session, into = SessionTable)
+    echo "session try: ", session_try, session_try.len
+
+
+    for m in movements:
+        echo ($(%*m)).db_create(Movement, into = MovementTable)
 
     echo "made it to end of thing"
+

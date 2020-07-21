@@ -29,7 +29,8 @@ proc to_json*(objs: seq[Movement] |
                     seq[MovementComboAssignment] | 
                     seq[User] | 
                     seq[Session] |
-                    seq[Routine]): seq[JsonNode] =
+                    seq[Routine] |
+                    seq[RoutineAssignment]): seq[JsonNode] =
 
     result = @[]
 
