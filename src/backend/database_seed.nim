@@ -237,11 +237,12 @@ if isMainModule:
 
     let session = Session(
         kind: New,
-        date: now().to_Date,
-        routine: routine.parseJson.to(Routine)
+        routine: routine_try[0]
     )
-
-    let session_try = ($session).db_create(Session, into = SessionTable)
+    let ser_session = %*session
+    ser_session{"session_date"}= %now().yyyy_mm_dd.to_string
+    echo "ser session", ser_session
+    let session_try = ($ser_session).db_create(Session, into = SessionTable)
     echo "session try: ", session_try, session_try.len
 
 

@@ -43,12 +43,19 @@ proc to_json*(objs: seq[Movement] |
 
                 if not restricted.contains(key):
                     
-                    to_json{key}= %*val
+                    # TODO: Figure out why this works
+                    when val is YYYYMMDD:
+
+                        to_json{key}= %*val.to_string
+                    
+                    else:
+                    
+                        to_json{key}= %*val
 
             result.add(to_json)
 
         except:
-            echo getCurrentExceptionMsg()
+            echo "to json error: ", getCurrentExceptionMsg()
             continue
 
     return result
@@ -78,8 +85,7 @@ proc get_foreign_keys*(js: seq[JsonNode]): seq[JsonNode] =
 
             var to_return = parseJson("{}")
             for key in j.keys:
-                
-                if key in foreign_prefixes:
+                if key in foreign_prefixes and j{key}.hasKey("id"):
 
                     to_return{key & "_id"}= j{key}.getOrDefault("id")
 
@@ -90,8 +96,9 @@ proc get_foreign_keys*(js: seq[JsonNode]): seq[JsonNode] =
             result.add(to_return)
 
         except:
-            echo getCurrentExceptionMsg()
+            echo "get foreign keys error: ", getCurrentExceptionMsg()
             continue
+
 
     return result
 
@@ -142,17 +149,36 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
 
         try:
             for key in j.keys:
-
-                case e:
-                    of New:
+                if "_date" in key:
+                    
+                    let
+                        ymd = j{key}.getStr.split("-")
+                    
+                    if ymd.len == 3:
                         
-                        if not restricted.contains(key):
+                        let
+                            year = ymd[0].parseInt
+                            month = ymd[1].parseInt
+                            day = ymd[2].parseInt
+
+                        to_convert{key} = %*{
+                            "Year" : year,
+                            "Month": month,
+                            "Day": day
+                        }
+                
+                else:
+
+                    case e:
+                        of New:
+                            
+                            if not restricted.contains(key):
+
+                                to_convert{key}= %*j{key}
+
+                        of Existing:
 
                             to_convert{key}= %*j{key}
-
-                    of Existing:
-
-                        to_convert{key}= %*j{key}
 
             var obj = to_convert.to(t)
 
@@ -185,7 +211,7 @@ proc yyyy_mm_dd*(dt: DateTime): YYYYMMDD =
         Day: ord(dt.monthday)
     )
 
-proc to_string(ymd: YYYYMMDD, sep="-"): string =
+proc to_string*(ymd: YYYYMMDD, sep="-"): string =
     &"{ymd.Year}{sep}{ymd.Month:02}{sep}{ymd.Day:02}"
 
 proc db_read_from_id*(ids: seq[int], into: DataTable): seq[JsonNode] =

@@ -5,7 +5,7 @@ type
     # workaround - use our own custom date object
 
     YYYYMMDD* = object
-        Year*, Month*, Day*, Hour*: int
+        Year*, Month*, Day*: int
 
     MovementPlane* = enum
         UnspecifiedPlane
@@ -55,7 +55,7 @@ type
         description*: string
 
     Session* = object of Entry
-        date*: YYYYMMDD
+        session_date*: YYYYMMDD
         routine*: Routine
 
     MovementCombo* = object of Entry
