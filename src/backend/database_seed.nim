@@ -227,13 +227,13 @@ if isMainModule:
     let routine_combo_assignment = RoutineAssignment(
         movement_combo: movement_combo_obj[0],
         routine: routine_try[0],
-        order: 1
+        routine_order: 1
     )
 
     let routine_created = ($(%*routine_combo_assignment)).db_create(RoutineAssignment, into = RoutineAssignmentTable)
 
     for r in routine_created:
-        echo "routine: ", r
+        echo "routine assignment: ", r
 
     let session = Session(
         kind: New,

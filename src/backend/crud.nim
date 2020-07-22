@@ -1,7 +1,7 @@
 import ../app_types, database_schema
 import allographer/query_builder
 import json
-import sequtils, strutils
+import sequtils, strutils, strformat
 import times
 
 const restricted = @[
@@ -176,14 +176,17 @@ proc get_id*(js: seq[JsonNode]): seq[int] =
         except:
             echo getCurrentExceptionMsg()
 
-proc to_Date*(dt: DateTime): Date =
+proc yyyy_mm_dd*(dt: DateTime): YYYYMMDD =
     
     # TODO: add the times fields
-    result = Date(
+    result = YYYYMMDD(
         Year: ord(dt.year),
         Month: ord(dt.month),
         Day: ord(dt.monthday)
     )
+
+proc to_string(ymd: YYYYMMDD, sep="-"): string =
+    &"{ymd.Year}{sep}{ymd.Month:02}{sep}{ymd.Day:02}"
 
 proc db_read_from_id*(ids: seq[int], into: DataTable): seq[JsonNode] =
     result = @[]
@@ -321,3 +324,7 @@ proc db_update*(s: string, t: typedesc, into: DataTable): seq[t] =
               .into(Existing, t)
 
     return result
+
+if isMainModule:
+
+    echo now().yyyy_mm_dd.to_string

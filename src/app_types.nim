@@ -4,9 +4,8 @@ type
     # https://forum.nim-lang.org/t/4106
     # workaround - use our own custom date object
 
-    Date* = object
-        Year*, Month*, Day*, Hour*, Minute*, Second*: int
-        day_name: string # ie) "Tuesday"
+    YYYYMMDD* = object
+        Year*, Month*, Day*, Hour*: int
 
     MovementPlane* = enum
         UnspecifiedPlane
@@ -56,7 +55,7 @@ type
         description*: string
 
     Session* = object of Entry
-        date*: Date
+        date*: YYYYMMDD
         routine*: Routine
 
     MovementCombo* = object of Entry
@@ -74,7 +73,7 @@ type
     RoutineAssignment* = object of Entry
         movement_combo*: MovementCombo
         routine*: Routine
-        order*: int
+        routine_order*: int
 
     IntensityUnits* = enum
         UnspecifiedIntensityUnit

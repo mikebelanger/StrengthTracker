@@ -59,7 +59,7 @@ let
         Column().increments("id"),
         Column().foreign("movement_combo_id").reference("id").on($MovementComboTable).onDelete(SET_NULL),
         Column().foreign("routine_id").reference("id").on($RoutineTable).onDelete(SET_NULL),
-        Column().integer("order")
+        Column().integer("routine_order")
     ]
 
     intensity_table = [
