@@ -83,16 +83,14 @@ type
 
     Intensity* = object of Entry
         quantity*: float32
-        intensity*: IntensityUnits
+        units*: IntensityUnits
             
-    Minutes* = distinct int
-
-    Set* = object of Entry
+    WorkoutSet* = object of Entry
         movement*: Movement
         movement_combo*: MovementCombo
         reps*: int
         tempo*: string
         intensity*: Intensity
         session*: Session
-        duration*: Minutes
-        order*: int
+        duration_in_minutes*: int
+        set_order*: int

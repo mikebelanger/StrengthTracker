@@ -189,6 +189,9 @@ let
 
     """
 
+# stupid, yes. but for the sake of simulating incoming serialized data, this converter makes sense
+converter obj_to_jstr(o: object): string =
+    $(%*o)
 
 if isMainModule:
     # echo @[movement_combo_assignment.parseJson].into(New, MovementComboAssignment)
@@ -230,7 +233,7 @@ if isMainModule:
         routine_order: 1
     )
 
-    let routine_created = ($(%*routine_combo_assignment)).db_create(RoutineAssignment, into = RoutineAssignmentTable)
+    let routine_created = routine_combo_assignment.db_create(RoutineAssignment, into = RoutineAssignmentTable)
 
     for r in routine_created:
         echo "routine assignment: ", r
@@ -239,15 +242,42 @@ if isMainModule:
         kind: New,
         routine: routine_try[0]
     )
+
     let ser_session = %*session
-    ser_session{"session_date"}= %now().yyyy_mm_dd.to_string
+    ser_session{"session_date"}= %now().strftime
     echo "ser session", ser_session
     let session_try = ($ser_session).db_create(Session, into = SessionTable)
     echo "session try: ", session_try, session_try.len
 
 
     for m in movements:
-        echo ($(%*m)).db_create(Movement, into = MovementTable)
+        echo m.db_create(Movement, into = MovementTable)
 
     echo "made it to end of thing"
 
+    let intensity = Intensity(
+        quantity: 32.00,
+        units: Pounds
+    )
+
+    let intensity_created = intensity.db_create(Intensity, into = IntensityTable)
+
+    echo intensity_created
+
+    for index, movement in updated_movement:
+
+        echo "movement: ", movement
+        echo movement_combo_obj, intensity_created, session_try
+
+        let new_set = WorkoutSet(
+            movement: movement,
+            movement_combo: movement_combo_obj[index],
+            reps: 4,
+            tempo: "3-0-5-0",
+            intensity: intensity_created[index],
+            session: session_try[index],
+            duration_in_minutes: 10,
+            set_order: 2
+        )
+
+        echo new_set.db_create(WorkoutSet, into = WorkoutsetTable)

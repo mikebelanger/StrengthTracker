@@ -12,7 +12,7 @@ type
         IntensityTable = "intensity"
         RoutineTable = "routine"
         SessionTable = "session"
-        SetTable = "set"
+        WorkoutSetTable = "workout_set"
 
 let
     user_table = [
@@ -76,8 +76,8 @@ let
         Column().string("tempo"),
         Column().foreign("intensity_id").reference("id").on("intensity").onDelete(SET_NULL),
         Column().foreign("session_id").reference("id").on("session").onDelete(SET_NULL),
-        Column().timestamp("duration"),
-        Column().integer("order")
+        Column().integer("duration_in_minutes"),
+        Column().integer("set_order")
     ]
 
 if isMainModule:
@@ -92,5 +92,5 @@ if isMainModule:
         table($RoutineAssignmentTable, routine_assignment_table),
         table($IntensityTable, intensity_table),
         table($SessionTable, session_table),
-        table($SetTable, set_table)
+        table($WorkoutSetTable, set_table)
     ])

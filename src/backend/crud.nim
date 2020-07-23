@@ -1,6 +1,6 @@
 import ../app_types, database_schema
 import allographer/query_builder
-import json
+import json, typetraits
 import sequtils, strutils, strformat
 import times
 
@@ -30,7 +30,9 @@ proc to_json*(objs: seq[Movement] |
                     seq[User] | 
                     seq[Session] |
                     seq[Routine] |
-                    seq[RoutineAssignment]): seq[JsonNode] =
+                    seq[Intensity] |
+                    seq[RoutineAssignment] |
+                    seq[WorkoutSet]): seq[JsonNode] =
 
     result = @[]
 
@@ -46,7 +48,7 @@ proc to_json*(objs: seq[Movement] |
                     # TODO: Figure out why this works
                     when val is YYYYMMDD:
 
-                        to_json{key}= %*val.to_string
+                        to_json{key}= %*val.strftime
                     
                     else:
                     
@@ -140,50 +142,76 @@ proc is_complete*(x: object): bool =
 
     return true
 
+proc str_to_YYYYMMDD(str: string): YYYYMMDD =
+
+    let
+        ymd = str.split("-")
+
+    if ymd.len == 3:
+        
+        result = YYYYMMDD(
+            Year : ymd[0].parseInt,
+            Month : ymd[1].parseInt,
+            Day : ymd[2].parseInt
+        )
+
+ 
+
 proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
     result = @[]
 
     for j in js: 
-        var to_convert = parseJson("{}")
-        to_convert{"kind"}= %e
 
         try:
-            for key in j.keys:
-                if "_date" in key:
-                    
-                    let
-                        ymd = j{key}.getStr.split("-")
-                    
-                    if ymd.len == 3:
-                        
-                        let
-                            year = ymd[0].parseInt
-                            month = ymd[1].parseInt
-                            day = ymd[2].parseInt
 
-                        to_convert{key} = %*{
-                            "Year" : year,
-                            "Month": month,
-                            "Day": day
-                        }
+            when t is Session:
+                
+                if e == New:
+                    let obj = Session(
+                        kind: New,
+                        session_date: j{"session_date"}.getStr(default = "0000-00-00").str_to_YYYYMMDD,
+                        routine: j{"routine"}.to(Routine)
+                    )
+
+                    result.add(obj)
                 
                 else:
 
-                    case e:
-                        of New:
+                    let obj = Session(
+                        id: j{"id"}.getInt(-1), 
+                        kind: Existing,
+                        session_date: j{"session_date"}.getStr(default = "0000-00-00").str_to_YYYYMMDD,
+                        routine: j{"routine"}.to(Routine)
+                    )
+
+                    result.add(obj)
+
+            else:
+                var to_convert = parseJson("{}")
+                to_convert{"kind"}= %e
+
+                for key in j.keys:
+                    
+                    case j{key}.kind:
+
+                        of JFloat:
+                            to_convert{key}= newJFloat(j{key}.getFloat(1.0))
+
+                        of JObject:
                             
-                            if not restricted.contains(key):
-
-                                to_convert{key}= %*j{key}
-
-                        of Existing:
-
                             to_convert{key}= %*j{key}
 
-            var obj = to_convert.to(t)
+                            if key == "session":
 
-            if obj.is_complete:
+                                to_convert{key}{"session_date"}= %*j{key}{"session_date"}.getStr("0000-00-00").str_to_YYYYMMDD
+
+                        else:
+                            to_convert{key}= %*j{key}
+
+                let obj = to_convert.to(t)
+
                 result.add(obj)
+
 
         except:
             echo "into error: ", getCurrentExceptionMsg()
@@ -202,7 +230,7 @@ proc get_id*(js: seq[JsonNode]): seq[int] =
         except:
             echo getCurrentExceptionMsg()
 
-proc yyyy_mm_dd*(dt: DateTime): YYYYMMDD =
+converter to_YYYYMMDD*(dt: DateTime): YYYYMMDD =
     
     # TODO: add the times fields
     result = YYYYMMDD(
@@ -211,7 +239,7 @@ proc yyyy_mm_dd*(dt: DateTime): YYYYMMDD =
         Day: ord(dt.monthday)
     )
 
-proc to_string*(ymd: YYYYMMDD, sep="-"): string =
+proc strftime*(ymd: YYYYMMDD, sep="-"): string =
     &"{ymd.Year}{sep}{ymd.Month:02}{sep}{ymd.Day:02}"
 
 proc db_read_from_id*(ids: seq[int], into: DataTable): seq[JsonNode] =
@@ -239,7 +267,7 @@ proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
 
         # loop through individual json object
         for key in j.keys:
-
+            
             # if there's something like "movement_id", or "movement_combo_id"
             if "_id" in key and not j{key}.isNil:
                 if j{key}.getInt > 0:
@@ -257,8 +285,15 @@ proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
                     for q in query:
                         return_j{table_name}= q
 
+                    echo "foreign obj: ", return_j{table_name}
+
                     # safe to assume we only want existing objects, so add it as "Existing"
                     return_j{table_name}{"kind"}= %"Existing"
+
+            elif key == "quantity":
+
+                return_j{key} = newJFloat(j{key}.getFloat)
+
 
             # otherwise just copy over what's there
             else:
@@ -353,4 +388,17 @@ proc db_update*(s: string, t: typedesc, into: DataTable): seq[t] =
 
 if isMainModule:
 
-    echo now().yyyy_mm_dd.to_string
+    let blah = parseJson("""
+    {"kind":"Existing",
+    "id":1,
+    "movement":
+        {"id":1,"name":"Kettlebell Step Up WITH FIRE","area":"Upper","concentric_type":"Squat","symmetry":"Bilateral","plane":"Vertical","description":"stepping on a flaming brick","kind":"Existing"},
+    "movement_combo":
+        {"id":1,"name":"some_new_combo","kind":"Existing"},"reps":4,"tempo":"3-0-5-0","intensity":{"id":1,"quantity":0.0,"units":"Pounds","kind":"Existing"},
+    "session":
+        {"kind":"Existing","id":1,"session_date":{"Year":2020,"Month":7,"Day":22}},
+    "duration_in_minutes":10,
+    "set_order":2}
+    """)
+
+    echo blah
