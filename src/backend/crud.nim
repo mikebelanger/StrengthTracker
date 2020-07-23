@@ -3,6 +3,7 @@ import allographer/query_builder
 import json, typetraits
 import sequtils, strutils, strformat
 import times
+import segfaults
 
 const restricted = @[
     "kind"
@@ -226,9 +227,9 @@ proc get_id*(js: seq[JsonNode]): seq[int] =
 
     for j in js:
         try:
-            result.add(j{"id"}.getInt)
+            result.add(j{"id"}.getInt(-1))
         except:
-            echo getCurrentExceptionMsg()
+            echo "error getting id: ", getCurrentExceptionMsg()
 
 converter to_YYYYMMDD*(dt: DateTime): YYYYMMDD =
     
@@ -284,8 +285,6 @@ proc add_foreign_objs*(js: seq[JsonNode]): seq[JsonNode] =
                     # add any objects from query into our attribute.  Should be for any nested object
                     for q in query:
                         return_j{table_name}= q
-
-                    echo "foreign obj: ", return_j{table_name}
 
                     # safe to assume we only want existing objects, so add it as "Existing"
                     return_j{table_name}{"kind"}= %"Existing"

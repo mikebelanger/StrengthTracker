@@ -116,15 +116,15 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 resp %*combo_assignment_creation
 
                     of CreateSession:
+                        
+                        # first load the active routine for this user
+                        let routine = request.body.db_read(Routine, from_table = RoutineTable)
 
-                        let session_created =
-                            request.body.db_create(Session, into = SessionTable)
-
-                        case session_created.len:
+                        case routine.len:
                             of 0:
-                                resp Http501, "Could not load session"
+                                resp Http501, "Could not load routine"
                             else:
-                                resp %*session_created                   
+                                resp %*routine                   
 
                     of ReadSession:
 
@@ -148,36 +148,79 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             else:
                                 resp %*user                   
 
+                    of ReadActiveRoutine:
+                        
+                        let active_routine =
 
-                    of ReadRoutine:
+                            request.body.to_json.get_id.map(proc (user_id: int): seq[Routine] =
 
-                        # in addition to reading the routine, this loads the routine
-                        # assignments associated to this particula routine, for convenience.
+                                try:
+                                    result =
+                                        RoutineTable.db_connect.query_matching_all((
 
-                        let routines = 
+                                            user_id: user_id,
+                                            active: true
+
+                                        ))
+                                        .get()
+                                        .add_foreign_objs
+                                        .into(Existing, Routine)
+
+                                except:
+                                    echo "read active routine error: ", getCurrentExceptionMsg()
+
+                            )
+                            .concat
+
+                        case active_routine.len:
+                            of 0:
+                                resp Http501, "No active routine found"
+                            else:
+                                resp %*active_routine
+
+                        # load routine based on its user, and that
+                    of ReadRoutineAssignments:
+
+                        # what we really want is the movement combos for this
+                        # routine, but we have to query pretty indirectly to get them.
+
+                        # first through the routine assignments
+                        let movement_combos = 
                             request.body.db_read(Routine, from_table = RoutineTable)
                                         .map(proc (routine: Routine): seq[JsonNode] =
 
-                                            let result = 
-                                                RoutineAssignmentTable
+                                            return RoutineAssignmentTable
                                                         .db_connect
-                                                        .query_matching_all(
+                                                        .query_matching_any(
                                                             (routine_id: routine.id)
                                                         )
-                                                        .orderBy("order", Asc)
+                                                        .orderBy("routine_order", Asc)
                                                         .get()
                                                         .add_foreign_objs
 
                                         )
                                         .concat
                                         .into(Existing, RoutineAssignment)
+                                        .map(proc (ra: RoutineAssignment): seq[JsonNode] =
+
+                                            return MovementComboAssignmentTable
+                                                        .db_connect
+                                                        .query_matching_all(
+                                                            (movement_combo_id: ra.movement_combo.id)
+                                                        )
+                                                        .get()
+                                                        .add_foreign_objs
+
+                                        )
+                                        .concat
+                                        .into(Existing, MovementComboAssignment)
                                 
-                        case routines.len:
+                        case movement_combos.len:
 
                             of 0:
                                 resp Http501, "Error reading routine assignments"
                             else:
-                                resp %*routines      
+                                resp %*movement_combos      
 
 
             # I seem to only need GET and POST

@@ -3,9 +3,9 @@ import karax/[kdom, kajax]
 import json, sugar
 import ../app_types, ../app_routes
 import components
-import strutils, sequtils
+import strutils, sequtils, algorithm
 
-type PageMode = enum Login, UserMainPage, Workout, ManageMovements
+type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements
 var
     page_loaded: bool
     app_state: cstring
@@ -19,6 +19,9 @@ var
     areas = MovementArea.mapIt($it).filterIt(it.contains("Unspecified") == false)
     concentric_types = ConcentricType.mapIt($it).filterIt(it.contains("Unspecified") == false)
     symmetries = Symmetry.mapIt($it).filterIt(it.contains("Unspecified") == false)
+    current_routine: seq[Routine]
+    routine_movement_combos: seq[MovementComboAssignment]
+    current_session: Session
 
 proc switchTo(p: PageMode) =
     pageMode = p
@@ -179,6 +182,27 @@ proc login(user: User) =
     )
     switchTo(UserMainPage)
 
+proc readRoutine() =
+    ajaxPost(ReadActiveRoutine, headers = @[], data = $(%*current_user), proc (status: int, resp: cstring) =
+
+        if status == 200:
+
+            echo "active routine: ", $resp
+
+            for r in ($resp).parseJson:
+                current_routine.add(r.to(Routine))
+    )
+
+proc createSession() =
+    ajaxPost(ReadRoutineAssignments, headers = @[], data = $(%current_routine[0]), proc (status: int, resp: cstring) =
+            
+        if status == 200:
+
+            echo "movement combos: ", $resp
+
+            for mc in ($resp).parseJson:
+                routine_movement_combos.add(mc.to(MovementComboAssignment))
+    )
 
 proc render(): VNode =
     
@@ -195,16 +219,24 @@ proc render(): VNode =
                                     a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => login(user)):
                                         text user.name
 
-
                         of UserMainPage:
 
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome, " & current_user.name)
                         
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(Workout)):
-                                text "Start the workout"
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ShowRoutines, readRoutine)):
+                                text "Check out sessions"
 
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readAllMovements)):
                                 text "Look at Exercise Options"
+
+                        of ShowRoutines:
+
+                            createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Click any routine to start a new session")
+
+                            for cr in current_routine:
+                                a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => switchTo(Workout, createSession)):
+                                    text cr.name
+
 
                         of ManageMovements:
 
@@ -307,38 +339,48 @@ proc render(): VNode =
 
  
                         of Workout:
-                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = "Performing Workout: A")
-                            createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
-                            header(class = "tc"):
-                                h1(class = $AttentionHeader & " pb2"):
-                                    text "Pull-up"
-                                input(type = "range", id = "repsInputId", value="8", min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
-                                output(id = "repsOutputId", class="pl3 avenir tr"):
-                                    text "can you do " & $8 & " reps ?"
-                                h1(class = $AttentionHeader):
-                                    a(class = $BigGreenButton & " avenir tc"):
-                                        text "Done Set"
-                            br()
-                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "This workout so far:")
-                            tdiv(class = "bg-green avenir"):
-                                table(class = "f6 ph3 mt0 underline center"):
-                                    thead:
-                                        tr(class = "stripe-dark"):
-                                            th(class = "fw6 tl pa3 bg-green tl"):
-                                                text "Exercise"
-                                            th(class = "fw6 tl pa3 bg-green tr"):
-                                                text "Sets"
-                                    tbody(class = "lh-copy"):
-                                        tr(class = "stripe-dark"):
-                                            td(class = "pa3 tl tl"):
-                                                text "Split Squat"
-                                            td(class = "pa3 tl tr"):
-                                                text "1, 5, 3"
-                                        tr(class = "stripe-light"):
-                                            td(class = "pa3 tl"):
-                                                text "Pull Up"
-                                            td(class = "pa3 tl"):
-                                                text "4, 2, 1"
+
+                            for mc in routine_movement_combos:
+                                
+                                # let set = WorkoutSet(
+                                #     ra.movement
+                                # )
+                                # create a 'tentative' set for user:
+                                text $mc
+
+
+                            # createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = "Performing Workout: A")
+                            # createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
+                            # header(class = "tc"):
+                            #     h1(class = $AttentionHeader & " pb2"):
+                            #         text "Pull-up"
+                            #     input(type = "range", id = "repsInputId", value="8", min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
+                            #     output(id = "repsOutputId", class="pl3 avenir tr"):
+                            #         text "can you do " & $8 & " reps ?"
+                            #     h1(class = $AttentionHeader):
+                            #         a(class = $BigGreenButton & " avenir tc"):
+                            #             text "Done Set"
+                            # br()
+                            # createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "This workout so far:")
+                            # tdiv(class = "bg-green avenir"):
+                            #     table(class = "f6 ph3 mt0 underline center"):
+                            #         thead:
+                            #             tr(class = "stripe-dark"):
+                            #                 th(class = "fw6 tl pa3 bg-green tl"):
+                            #                     text "Exercise"
+                            #                 th(class = "fw6 tl pa3 bg-green tr"):
+                            #                     text "Sets"
+                            #         tbody(class = "lh-copy"):
+                            #             tr(class = "stripe-dark"):
+                            #                 td(class = "pa3 tl tl"):
+                            #                     text "Split Squat"
+                            #                 td(class = "pa3 tl tr"):
+                            #                     text "1, 5, 3"
+                            #             tr(class = "stripe-light"):
+                            #                 td(class = "pa3 tl"):
+                            #                     text "Pull Up"
+                            #                 td(class = "pa3 tl"):
+                            #                     text "4, 2, 1"
 
                             h1(class = "tc"):
                                 a(class = $BigBlueButton & " avenir tc pb3"):
