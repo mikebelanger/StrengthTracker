@@ -343,8 +343,8 @@ proc render(): VNode =
 
                                 text "Click to submit"
 
-                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
-                                text "Back to main page"
+                            # footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
+                            #     text "Back to main page"
 
  
                         of Workout:
@@ -395,8 +395,8 @@ proc render(): VNode =
                                 a(class = $BigBlueButton & " avenir tc pb3"):
                                     text "Done Combo"
 
-                            footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
-                                text "Back to main page"
+                    footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
+                        text "Back to main page"
 
     elif window.location.pathname == "/workout.html":
         result = createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Your currently doing")
