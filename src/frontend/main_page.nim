@@ -30,6 +30,13 @@ proc switchTo(p: PageMode, cb: proc) =
     cb()
     pageMode = p
 
+proc add_any_new_to[T](x: T, list: seq[T]): seq[T] =
+    var return_list = list
+    if list.allIt(not it.id == x.id):
+        return_list.add(x)
+
+    return return_list
+
 proc read_all_users() =
              
     ajaxGet(url = $ReadAllUsers, headers = @[], proc(status: int, resp: cstring) =
@@ -190,7 +197,9 @@ proc readRoutine() =
             echo "active routine: ", $resp
 
             for r in ($resp).parseJson:
-                current_routine.add(r.to(Routine))
+
+                current_routine = r.to(Routine).add_any_new_to(current_routine)
+
     )
 
 proc createSession() =
@@ -201,7 +210,7 @@ proc createSession() =
             echo "movement combos: ", $resp
 
             for mc in ($resp).parseJson:
-                routine_movement_combos.add(mc.to(MovementComboAssignment))
+                routine_movement_combos = mc.to(MovementComboAssignment).add_any_new_to(routine_movement_combos)
     )
 
 proc render(): VNode =
