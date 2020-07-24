@@ -13,8 +13,8 @@ var
     movement_left_blank = false
     pageMode = Login
     all_movements: seq[Movement]
-    current_user: User
-    all_users = @[User(name: "Another user", email: "anotheruser@email.com")]
+    current_user = User(kind: New, name: "not logged in", email: "")
+    all_users: seq[User]
     planes = MovementPlane.mapIt($it).filterIt(it.contains("Unspecified") == false)
     areas = MovementArea.mapIt($it).filterIt(it.contains("Unspecified") == false)
     concentric_types = ConcentricType.mapIt($it).filterIt(it.contains("Unspecified") == false)
@@ -189,6 +189,10 @@ proc login(user: User) =
     )
     switchTo(UserMainPage)
 
+proc logout() =
+    current_user = User(kind: New, name: "not logged in", email: "")
+    switchTo(Login)
+
 proc readRoutine() =
     ajaxPost(ReadActiveRoutine, headers = @[], data = $(%*current_user), proc (status: int, resp: cstring) =
 
@@ -219,7 +223,19 @@ proc render(): VNode =
         result = 
             buildHtml():
                 tdiv:
-                    createSpan(span = StatusSpan, header = InformationHeader, padding = 1, message = "Currently not logged in.")
+                    header(class = $StatusSpanHeader):
+                        tdiv(class = "pb2" & " pt0" & $StatusSpanHeader):
+                            span(class = $StatusSpanHeader):
+                                tdiv(class = "cf"):
+                                    if current_user.email.len == 0:
+                                        tdiv(class = "fl w-50"):
+                                            text "Currently not logged in."
+                                    else:
+                                        tdiv(class = "fl w-50"):
+                                            text "Logged in as " & current_user.name
+                                        tdiv(class = "fr tr w-50"):
+                                            a(onclick = () => logout()):
+                                                text "(Logout)"
 
                     case pageMode:
                         of Login:
@@ -395,8 +411,9 @@ proc render(): VNode =
                                 a(class = $BigBlueButton & " avenir tc pb3"):
                                     text "Done Combo"
 
-                    footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
-                        text "Back to main page"
+                    if (not (pageMode == UserMainPage) and (current_user.email.len > 0)):
+                        footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
+                            text "Back to main page"
 
     elif window.location.pathname == "/workout.html":
         result = createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Your currently doing")
