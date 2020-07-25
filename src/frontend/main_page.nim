@@ -5,7 +5,7 @@ import ../app_types, ../app_routes
 import components
 import strutils, sequtils, algorithm
 
-type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements
+type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos
 var
     page_loaded: bool
     app_state: cstring
@@ -254,6 +254,9 @@ proc render(): VNode =
                             a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readAllMovements)):
                                 text "Look at Exercise Options"
 
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovementCombos, readAllMovements)):
+                                text "Add Movement Combo"
+
                         of ShowRoutines:
 
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Click any routine to start a new session")
@@ -359,10 +362,15 @@ proc render(): VNode =
 
                                 text "Click to submit"
 
-                            # footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
-                            #     text "Back to main page"
 
- 
+                        of ManageMovementCombos:
+
+                            createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Add Movement Combo")
+                            input(id = "movement_combo_name", value="", placeholder="Movement Combo Name")
+
+                            
+                            
+
                         of Workout:
 
                             for mc in routine_movement_combos:
@@ -411,7 +419,7 @@ proc render(): VNode =
                                 a(class = $BigBlueButton & " avenir tc pb3"):
                                     text "Done Combo"
 
-                    if (not (pageMode == UserMainPage) and (current_user.email.len > 0)):
+                    if not (pageMode == UserMainPage) and current_user.email.len > 0:
                         footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
                             text "Back to main page"
 
