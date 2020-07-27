@@ -22,6 +22,7 @@ var
     current_routine: seq[Routine]
     routine_movement_combos: seq[MovementComboAssignment]
     current_session: Session
+    new_movement_combo_count: int
 
 proc switchTo(p: PageMode) =
     pageMode = p
@@ -74,6 +75,9 @@ proc readMovement(id: int) =
     )
 
 proc readAllMovements() =
+    # this part just resets the movement combos for creating new Movement Combos
+    new_movement_combo_count = 0
+    
     ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
         all_movements = parseJson($resp).mapIt(it.to(Movement))
     )
@@ -155,6 +159,51 @@ proc update_movement(db_id, name_id, area_id, plane_id, concentric_type_id, symm
                 readMovement(id = movement.id)
         )
 
+proc createMovementCombo() =
+
+    var movements: seq[Movement]
+    # loop-thru and get each movement name, and grab its corresponding ID
+    for mcn in 0..new_movement_combo_count:
+
+        # get number
+        var name_id = document.getElementById("movement_combo_movement_number_" & $mcn)
+
+        if not (name_id.isNil):
+
+            var 
+                movement_name = name_id.value
+                movement = all_movements.filterIt(it.name == movement_name)
+                                        .foldl(a)
+
+            movements.add(movement)
+
+    var movement_combo_name = document.getElementById("movement_combo_name")
+
+    if not (movement_combo_name.isNil) and movement_combo_name.value.len > 0:
+        
+        var movement_combo = MovementCombo(kind: New, name: $movement_combo_name.value)
+
+        ajaxPost(url = $CreateMovementCombo, headers = @[], data = $(%*movement_combo), proc (status: int, resp: cstring) =
+        
+            if status == 200:
+                
+                var movement_combos = parseJson($resp).mapIt(it.to(MovementCombo))
+
+                for mc in movement_combos:
+                    
+                    var new_movement_combo_request = %*NewMovementComboRequest(
+                        movement_combo: mc,
+                        movements: movements
+                    )
+
+                    ajaxPost($CreateMovementComboAssignment, headers = @[], data = $new_movement_combo_request, proc (status: int, resp: cstring) =
+                    
+                        if status == 200:
+                            echo "response successful"
+                    
+                    )
+
+        )
 
 proc repsSliderToOutput() = 
     var repsInputElement = document.getElementById("repsInputId")
@@ -216,6 +265,9 @@ proc createSession() =
             for mc in ($resp).parseJson:
                 routine_movement_combos = mc.to(MovementComboAssignment).add_any_new_to(routine_movement_combos)
     )
+
+proc add_movement_combo_option() =
+    new_movement_combo_count += 1
 
 proc render(): VNode =
     
@@ -368,8 +420,13 @@ proc render(): VNode =
                             createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "Add Movement Combo")
                             input(id = "movement_combo_name", value="", placeholder="Movement Combo Name")
 
-                            
-                            
+                            for m in 0..new_movement_combo_count:
+                                optionsMenu(name = ("movement_combo_movement_number_" & $m), message = "choose movement combo", options = all_movements.mapIt(it.name))
+                            br()
+                            a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_option()):
+                                text "Add Movement"
+                            a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
+                                text "Submit Movement Combo"
 
                         of Workout:
 
@@ -420,6 +477,7 @@ proc render(): VNode =
                                     text "Done Combo"
 
                     if not (pageMode == UserMainPage) and current_user.email.len > 0:
+                        br()
                         footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
                             text "Back to main page"
 

@@ -97,7 +97,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         case movement_combo_creation.len:
 
                             of 0:
-                                resp Http501, "Error updating movement"
+                                resp Http501, "Error creating movement combo"
                             else:
                                 resp %*movement_combo_creation                           
 
@@ -105,8 +105,34 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                         let
                             combo_assignment_creation =
+
+                                request.body.to_json
+                                    .map(proc (j: JsonNode): NewMovementComboRequest =
+
+                                        try:
+                                            return j.to(NewMovementComboRequest)
+                                        
+                                        except:
+                                            echo "cannot convert request to NewMovementComboRequest: "
+                                            echo getCurrentExceptionMsg()
+
+                                    )
+                                    .map(proc (nmcr: NewMovementComboRequest): seq[int] =
+
+                                        var to_insert_array: seq[JsonNode]
+
+                                        for m in nmcr.movements:
+                                            to_insert_array.add(%*{"movement_id": m.id, "movement_combo_id" : nmcr.movement_combo.id})
+
+                                        return MovementComboAssignmentTable.db_connect.insertID(to_insert_array)
+
+                                    )
+                                    .concat
+                                    .filterIt(it > 0)
+                                    .db_read_from_id(into = MovementComboAssignmentTable)
+                                    .add_foreign_objs
+                                    .into(Existing, MovementComboAssignment)
                                 
-                                request.body.db_create(MovementComboAssignment, MovementComboAssignmentTable)
 
                         case combo_assignment_creation.len:
 

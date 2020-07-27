@@ -94,3 +94,8 @@ type
         session*: Session
         duration_in_minutes*: int
         set_order*: int
+
+    # Request-specific stuff
+    NewMovementComboRequest* = object
+        movement_combo*: MovementCombo
+        movements*: seq[Movement]
