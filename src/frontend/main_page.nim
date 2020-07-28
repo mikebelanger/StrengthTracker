@@ -5,7 +5,7 @@ import ../app_types, ../app_routes
 import components
 import strutils, sequtils, algorithm
 
-type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos
+type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos, EditRoutine
 var
     page_loaded: bool
     app_state: cstring
@@ -13,6 +13,7 @@ var
     movement_left_blank = false
     pageMode = Login
     all_movements: seq[Movement]
+    all_movement_combos: seq[MovementComboGroup]
     current_user = User(kind: New, name: "not logged in", email: "")
     all_users: seq[User]
     planes = MovementPlane.mapIt($it).filterIt(it.contains("Unspecified") == false)
@@ -27,8 +28,10 @@ var
 proc switchTo(p: PageMode) =
     pageMode = p
 
-proc switchTo(p: PageMode, cb: proc) =
-    cb()
+proc switchTo(p: PageMode, callbacks: seq[proc]) =
+    for cb in callbacks:
+        cb()
+
     pageMode = p
 
 proc add_any_new_to[T](x: T, list: seq[T]): seq[T] =
@@ -80,6 +83,14 @@ proc readAllMovements() =
     
     ajaxGet(url = $ReadAllMovement, headers = @[], proc (status: int, resp: cstring) =
         all_movements = parseJson($resp).mapIt(it.to(Movement))
+    )
+
+proc readAllMovementCombos() =
+
+    ajaxGet(url = $ReadAllMovementComboGroups, headers = @[], proc (status: int, resp: cstring) =
+        if status == 200:
+            echo "got response: ", $resp
+            all_movement_combos = parseJson($resp).mapIt(it.to(MovementComboGroup))
     )
     
 proc getJsonValue(input: cstring, key: string): cstring =
@@ -169,7 +180,8 @@ proc createMovementCombo() =
         var name_id = document.getElementById("movement_combo_movement_number_" & $mcn)
 
         if not (name_id.isNil):
-
+            
+            echo "all movements"
             var 
                 movement_name = name_id.value
                 movement = all_movements.filterIt(it.name == movement_name)
@@ -191,7 +203,7 @@ proc createMovementCombo() =
 
                 for mc in movement_combos:
                     
-                    var new_movement_combo_request = %*NewMovementComboRequest(
+                    var new_movement_combo_request = %*MovementComboGroup(
                         movement_combo: mc,
                         movements: movements
                     )
@@ -255,19 +267,19 @@ proc readRoutine() =
 
     )
 
-proc createSession() =
+proc readRoutineAssignments() =
     ajaxPost(ReadRoutineAssignments, headers = @[], data = $(%current_routine[0]), proc (status: int, resp: cstring) =
             
         if status == 200:
-
-            echo "movement combos: ", $resp
 
             for mc in ($resp).parseJson:
                 routine_movement_combos = mc.to(MovementComboAssignment).add_any_new_to(routine_movement_combos)
     )
 
+
 proc add_movement_combo_option() =
     new_movement_combo_count += 1
+
 
 proc render(): VNode =
     
@@ -300,13 +312,13 @@ proc render(): VNode =
 
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome, " & current_user.name)
                         
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ShowRoutines, readRoutine)):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ShowRoutines, @[readRoutine])):
                                 text "Check out sessions"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, readAllMovements)):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, @[readAllMovements])):
                                 text "Look at Exercise Options"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovementCombos, readAllMovements)):
+                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovementCombos, @[readAllMovements])):
                                 text "Add Movement Combo"
 
                         of ShowRoutines:
@@ -314,9 +326,16 @@ proc render(): VNode =
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Click any routine to start a new session")
 
                             for cr in current_routine:
-                                a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => switchTo(Workout, createSession)):
+                                a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
                                     text cr.name
+                                a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
+                                    text "Edit"
 
+                        of EditRoutine:
+                            
+                            # nested movement combos - arrays sorted by sharing a common movement combo
+                            for movement_combo in all_movement_combos:
+                                optionsMenu(name = "movement_combo", message = "click to change movement combo", options = movement_combo.movements.mapIt(it.name))
 
                         of ManageMovements:
 

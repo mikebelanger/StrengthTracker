@@ -5,7 +5,7 @@ import json
 import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
-import sequtils, strutils
+import sequtils, strutils, algorithm
 import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
@@ -35,6 +35,33 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                                  .get()
                                                  .into(Existing, User)
                         resp %*all_users
+
+                    of ReadAllMovementComboGroups:
+
+                        var 
+                            all_assignments = MovementComboTable.db_connect
+                                                                .select
+                                                                .get()
+                                                                .into(Existing, MovementCombo)
+                                                                .map(proc (mc: MovementCombo): MovementComboGroup =
+
+                                                                    result = MovementComboGroup(
+                                                                        movement_combo: mc,
+                                                                        movements: MovementComboAssignmentTable.db_connect
+                                                                                                               .select
+                                                                                                               .where("movement_combo_id", "=", mc.id)
+                                                                                                               .get()
+                                                                                                               .add_foreign_objs
+                                                                                                               .into(Existing, MovementComboAssignment)
+                                                                                                               .mapIt(it.movement)
+                                                                    )
+
+                                                                    return result
+
+                                                                )
+
+
+                        resp %*all_assignments
 
                     else:
                         echo "Not supported yet"
@@ -107,17 +134,17 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             combo_assignment_creation =
 
                                 request.body.to_json
-                                    .map(proc (j: JsonNode): NewMovementComboRequest =
+                                    .map(proc (j: JsonNode): MovementComboGroup =
 
                                         try:
-                                            return j.to(NewMovementComboRequest)
+                                            return j.to(MovementComboGroup)
                                         
                                         except:
-                                            echo "cannot convert request to NewMovementComboRequest: "
+                                            echo "cannot convert request to MovementComboGroup: "
                                             echo getCurrentExceptionMsg()
 
                                     )
-                                    .map(proc (nmcr: NewMovementComboRequest): seq[int] =
+                                    .map(proc (nmcr: MovementComboGroup): seq[int] =
 
                                         var to_insert_array: seq[JsonNode]
 

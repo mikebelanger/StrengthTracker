@@ -5,6 +5,7 @@ const
     Index* = "/index.html"
     ReadAllUsers* = "/read_all_users.json" 
     ReadAllMovement* = "/read_all_movements.json"
+    ReadAllMovementComboGroups* = "/read_all_movement_combo_groups.json"
 
     # POST
 

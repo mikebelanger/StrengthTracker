@@ -96,6 +96,6 @@ type
         set_order*: int
 
     # Request-specific stuff
-    NewMovementComboRequest* = object
+    MovementComboGroup* = object
         movement_combo*: MovementCombo
         movements*: seq[Movement]
