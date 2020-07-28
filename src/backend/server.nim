@@ -47,13 +47,15 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                                                     result = MovementComboGroup(
                                                                         movement_combo: mc,
-                                                                        movements: MovementComboAssignmentTable.db_connect
-                                                                                                               .select
-                                                                                                               .where("movement_combo_id", "=", mc.id)
-                                                                                                               .get()
-                                                                                                               .add_foreign_objs
-                                                                                                               .into(Existing, MovementComboAssignment)
-                                                                                                               .mapIt(it.movement)
+                                                                        movements: 
+                                                                            MovementComboAssignmentTable
+                                                                                .db_connect
+                                                                                .select
+                                                                                .where("movement_combo_id", "=", mc.id)
+                                                                                .get()
+                                                                                .add_foreign_objs
+                                                                                .into(Existing, MovementComboAssignment)
+                                                                                .mapIt(it.movement)
                                                                     )
 
                                                                     return result
