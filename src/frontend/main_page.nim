@@ -3,7 +3,7 @@ import karax/[kdom, kajax]
 import json, sugar
 import ../app_types, ../app_routes
 import components
-import strutils, sequtils, algorithm
+import strutils, strformat, sequtils, algorithm
 
 type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos, EditRoutine
 var
@@ -22,6 +22,8 @@ var
     symmetries = Symmetry.mapIt($it).filterIt(it.contains("Unspecified") == false)
     current_routine: seq[Routine]
     routine_movement_combos: seq[MovementComboAssignment]
+    finished_sets = 0
+    current_movement_combo_assignment: MovementComboAssignment
     current_session: Session
     new_movement_combo_count: int
 
@@ -106,6 +108,10 @@ proc getOptionValue(input_node_id: cstring): string =
     for this_option in select_elem.options:
         if this_option.selected:
             return $this_option.value
+
+proc next_movement() =
+    finished_sets += 1
+    current_movement_combo_assignment = routine_movement_combos[finished_sets mod routine_movement_combos.len]
 
 
 proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id, description_id: cstring): proc () =
@@ -264,7 +270,6 @@ proc readRoutine() =
             for r in ($resp).parseJson:
 
                 current_routine = r.to(Routine).add_any_new_to(current_routine)
-
     )
 
 proc readRoutineAssignments() =
@@ -274,12 +279,11 @@ proc readRoutineAssignments() =
 
             for mc in ($resp).parseJson:
                 routine_movement_combos = mc.to(MovementComboAssignment).add_any_new_to(routine_movement_combos)
+                current_movement_combo_assignment = routine_movement_combos[finished_sets mod routine_movement_combos.len]
     )
 
-
 proc add_movement_combo_option() =
-    new_movement_combo_count += 1
-
+    echo ""
 
 proc render(): VNode =
     
@@ -328,6 +332,8 @@ proc render(): VNode =
                             for cr in current_routine:
                                 a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
                                     text cr.name
+                                a(class = "br-pill ph4 pv4 mb4 white bg-blue", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
+                                    text "Start new session"
                                 a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
                                     text "Edit"
 
@@ -448,27 +454,33 @@ proc render(): VNode =
                                 text "Submit Movement Combo"
 
                         of Workout:
+                            
+                            var                                 
+                                set = WorkoutSet(
+                                    movement: current_movement_combo_assignment.movement,
+                                    movement_combo: current_movement_combo_assignment.movement_combo,
+                                    reps: 0,
+                                    tempo: "1-0-1-0",
+                                    intensity: Intensity(
+                                        quantity: 5,
+                                        units: Pounds
+                                    ),
+                                    session: current_session,
+                                    set_order: 1
+                                )
 
-                            for mc in routine_movement_combos:
-                                
-                                # let set = WorkoutSet(
-                                #     ra.movement
-                                # )
-                                # create a 'tentative' set for user:
-                                text $mc
-
-
-                            # createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = "Performing Workout: A")
-                            # createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
-                            # header(class = "tc"):
-                            #     h1(class = $AttentionHeader & " pb2"):
-                            #         text "Pull-up"
-                            #     input(type = "range", id = "repsInputId", value="8", min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
-                            #     output(id = "repsOutputId", class="pl3 avenir tr"):
-                            #         text "can you do " & $8 & " reps ?"
-                            #     h1(class = $AttentionHeader):
-                            #         a(class = $BigGreenButton & " avenir tc"):
-                            #             text "Done Set"
+                            for r in current_routine:
+                                createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = fmt"Performing: {r.name}")
+                                createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
+                                header(class = "tc"):
+                                    h1(class = $AttentionHeader & " pb2"):
+                                        text set.movement.name
+                                    input(type = "range", id = "repsInputId", value=($set.reps), min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
+                                    output(id = "repsOutputId", class="pl3 avenir tr"):
+                                        text "can you do " & $set.reps & " reps ?"
+                                    h1(class = $AttentionHeader):
+                                        a(class = $BigGreenButton & " avenir tc", onclick = () => next_movement()):
+                                            text "Done Set"
                             # br()
                             # createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "This workout so far:")
                             # tdiv(class = "bg-green avenir"):

@@ -20,7 +20,7 @@ type
         BigRedButton = "w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-red"
 
 
-proc createSpan*(span: Span, header: Header, padding: int, message: string): VNode =
+proc createSpan*(span: Span, header: Header, padding: int, message: cstring | string): VNode =
     result = buildHtml():
         header(class = $span):
             tdiv(class = "pb" & $padding & " pt0"):
