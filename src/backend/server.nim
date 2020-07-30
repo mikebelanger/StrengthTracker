@@ -5,7 +5,7 @@ import json
 import ../app_types, ../app_routes, database_schema
 import allographer/query_builder
 import jester, asyncdispatch
-import sequtils, strutils, algorithm
+import sequtils, strutils
 import crud
 
 proc match(request: Request): Future[ResponseData] {.async.} =
