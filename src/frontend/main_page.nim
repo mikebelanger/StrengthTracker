@@ -283,7 +283,7 @@ proc readRoutineAssignments() =
     )
 
 proc add_movement_combo_option() =
-    echo ""
+    new_movement_combo_count += 1
 
 proc render(): VNode =
     
