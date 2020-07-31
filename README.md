@@ -18,7 +18,7 @@ While I don't want to discourage anyone from customizing this further, I should 
 * Step-tracking.
 * Nutrition tracking.
 * Random exercises ( aka CrossFit WODS ).
-* Anything with variable intensity (like drop-sets).
+* Anything where the intensity varies within a single session (like drop-sets).
 
 That said, if you can see a way to add any of the above (or more) - please send me a PR!  I'd be interested.
 
