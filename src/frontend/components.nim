@@ -14,11 +14,10 @@ type
         InformationHeader = "avenir f7 mb0 white-80"
         DirectiveHeader = "avenir f6 mb0 white-70 i"
 
-    Button* = enum
+    ButtonStyle* = enum
         BigGreenButton = "w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-green"
         BigBlueButton = "w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-blue"
         BigRedButton = "w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-red"
-
 
 proc createSpan*(span: Span, header: Header, padding: int, message: cstring | string): VNode =
     result = buildHtml():

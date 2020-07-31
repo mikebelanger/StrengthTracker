@@ -307,7 +307,7 @@ proc render(): VNode =
 
                     case pageMode:
                         of Login:
-                            span(class = "ph2 tc m5"):      
+                            span(class = "w-100 ph2 tc m5"):      
                                 for user in all_users:
                                     a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => login(user)):
                                         text user.name
@@ -316,26 +316,29 @@ proc render(): VNode =
 
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Welcome, " & current_user.name)
                         
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ShowRoutines, @[readRoutine])):
-                                text "Check out sessions"
+                            tdiv(class = "cf w-100"):
+                                a(class = "avenir fl tc m2 ph2 pv4 white bg-blue w-100 w-third-ns", onclick = () => switchTo(ShowRoutines, @[readRoutine])):
+                                    text "Check out sessions"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovements, @[readAllMovements])):
-                                text "Look at Exercise Options"
+                                a(class = "avenir fl tc m2 ph2 pv4 white bg-light-red w-100 w-third-ns", onclick = () => switchTo(ManageMovements, @[readAllMovements])):
+                                    text "Look at Exercise Options"
 
-                            a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(ManageMovementCombos, @[readAllMovements])):
-                                text "Add Movement Combo"
+                                a(class = "avenir fl tc m2 ph2 pv4 white bg-red w-100 w-third-ns", onclick = () => switchTo(ManageMovementCombos, @[readAllMovements])):
+                                    text "Add Movement Combo"
 
                         of ShowRoutines:
 
                             createSpan(span = AttentionSpan, header = AttentionHeader, padding = 3, message = "Click any routine to start a new session")
 
                             for cr in current_routine:
-                                a(class = "br-pill ph2 m10 pv2 center bg-blue b--black-10", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
-                                    text cr.name
-                                a(class = "br-pill ph4 pv4 mb4 white bg-blue", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
-                                    text "Start new session"
-                                a(class = "br-pill ph2 pv2 mb2 white bg-blue", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
-                                    text "Edit"
+                                tdiv(class = "cf w-100"):
+                                    a(class = "avenir fl tc m2 ph2 pv4 white bg-blue w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
+                                        h1:
+                                            text cr.name
+                                        a(class = "avenir fl tc m2 ph2 pv4 white-red w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
+                                            text "Start new session"
+                                        a(class = "avenir fl tc m2 ph2 pv4 white w-100 w-third-ns", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
+                                            text "Edit"
 
                         of EditRoutine:
                             
