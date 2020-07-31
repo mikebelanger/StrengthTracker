@@ -1,0 +1,10 @@
+.select {
+    border: 6px solid transparent;
+    border-color: #fff transparent transparent transparent;
+    background-color: transparent;
+}
+
+.select-selected:after {
+    border: transparent;
+    background-color: transparent;
+} 

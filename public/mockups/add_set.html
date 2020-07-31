@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+    <head>
+        <link href="../css/tachyons.min.css" type="text/css" rel="stylesheet"></style>
+    </head>
+    <body>
+        <style>
+            .f6 {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 2em;
+            }
+            .f10 {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: medium;
+            }
+
+        </style>
+        <header class="bg-green black-70 ph5-ns bt b--black-10 tc">
+            <div class="pa3">
+                <h1 class="f6 ph3 mb0 underline">Your currently doing: A</h1>
+                <p class="ph3 f10 mt0 mb0">Bulgarian Split Squat + Pull-up</p>
+            </div>
+        </header>
+        <div class="bg-red black-70 ph5-ns bt b--black-10 tc">
+            <div class="pa3">
+                <h1 class="f6 ph3 mt0 underline">
+                    Right now, do:
+                </h1>
+                <h2 class="f10 ph3 mt2 mb0">
+                    Split Squat
+                    <form name="registrationForm">
+                        <input type="range" name="ageInputName" id="ageInputId" value="8" min="1" max="30" oninput="ageOutputId.value = ageInputId.value + ' reps'">
+                        <output name="ageOutputName" id="ageOutputId">8 reps</output>
+                    </form>
+                    <a class="w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-blue" href="#0">Done Set</a>
+
+                </h2>
+            </div>
+        </div>
+        <div class="bg-yellow black-70 ph5-ns bt b--black-10 tc">
+            <div class="pa3 tc">
+                <h1 class="f6 ph3 mt0 underline">
+                    The Workout So far
+                </h1>
+                <div class="overflow-auto">
+                    <table class="f6 w-100 mw8 center" cellspacing="0">
+                    <thead>
+                        <tr class="stripe-dark">
+                            <th class="fw6 tl pa3 bg-yellow">Exercise</th>
+                            <th class="fw6 tl pa3 bg-yellow">Sets</th>
+                        </tr>
+                    </thead>
+                    <tbody class="lh-copy">
+                            <tr class="stripe-dark">
+                                <td class="pa3 tl">Split Squat</td>
+                                <td class="pa3 tl">2, 3, 4</td>
+                            </tr>
+                            <tr class="stripe-light">
+                                <td class="pa3 tl">Pull Up</td>
+                                <td class="pa3 tl">5, 4, 2, 2</td>
+                            </tr>
+                        </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="bg-red black-70 ph5-ns bt b--black-10 tc">
+            <div class="pa3">
+                <a class="w4 f10 no-underline br-pill ph2 pv2 mb2 white bg-blue" href="#0">I'm Done With This Combo</a>
+            </div>
+        </footer>
+    </body>
+</html>
