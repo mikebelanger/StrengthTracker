@@ -39,7 +39,7 @@ You'll need the [latest Nim](https://nim-lang.org/install.html) (at this time, t
 
 
 1. Download/Clone this repo
-2.  Cd into this repo with your favorite terminal emulator (I believe on Windows, this is just Powershell).
+2.  Cd into this repo with your favorite terminal emulator (For OS X users, Terminal.app or iTerm2.  For Windows users, I believe just Powershell).  Or open it in VSCode and use its Terminal emulator for the following commands.
 3.  Enter `nimble install` to ensure you have all the dependencies.
 4.  Enter `nim c -r src/backend/database_schema.nim` to setup the database's tables.
 5.  [Optional] Enter `nim c -r src/backend/database_seed.nim` to get some 'fake' data to work with.
