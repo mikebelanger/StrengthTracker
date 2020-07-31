@@ -35,17 +35,17 @@ Code for both front, and back-end is mostly written in [Nim](http://www.nim-lang
 
 #### Developing
 
-You'll need the [latest Nim](https://nim-lang.org/install.html) (at this time, that's with compiler v 1.3.5).  You'll also need [sqlite v.3.19.3](https://www.sqlite.org/index.html).  After that...
+You'll need the [latest Nim](https://nim-lang.org/install.html) (at this time, that's with compiler v 1.3.5).  You'll also need [sqlite v.3.19.3](https://www.sqlite.org/index.html).  You'll also need to decide which terminal emulator to use.  For OS X users, Terminal.app or iTerm2.  For Windows users, I believe just Powershell.  Linux users have an overwhelming amount of emulators to choose from, and I can't possibly list them all.  If you use VSCode, you could also just use its built-in terminal emulator to enter the commands.
 
 
 1. Download/Clone this repo
-2.  Cd into this repo with your favorite terminal emulator (For OS X users, Terminal.app or iTerm2.  For Windows users, I believe just Powershell).  Or open it in VSCode and use its Terminal emulator for the following commands.
+2.  Cd into this repo with your favorite terminal emulator.
 3.  Enter `nimble install` to ensure you have all the dependencies.
 4.  Enter `nim c -r src/backend/database_schema.nim` to setup the database's tables.
 5.  [Optional] Enter `nim c -r src/backend/database_seed.nim` to get some 'fake' data to work with.
 6. Enter `nimble frontend` to compile the front-end code into js, and make it servable by jester.
 7. Finally, start the server by entering `nim c -r src/backend/server.nim`
 
-From there, follow the prompt.  You'll be told to visit [http://localhost:5000] in a browser.  Do so and from there, the app should present itself.
+From there, follow the prompt.  You'll be told to visit http://localhost:5000 in a browser.  Do so and from there, the app should present itself.
 
 Please let me know of any issues.

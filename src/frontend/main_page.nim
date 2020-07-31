@@ -332,12 +332,12 @@ proc render(): VNode =
 
                             for cr in current_routine:
                                 tdiv(class = "cf w-100"):
-                                    a(class = "avenir fl tc m2 ph2 pv4 white bg-blue w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
-                                        h1:
+                                    a(class = "avenir fl tl m2 ph2 pv4 white bg-blue w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
+                                        h2:
                                             text cr.name
-                                        a(class = "avenir fl tc m2 ph2 pv4 white-red w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
+                                        a(class = "avenir fl tl m2 ph2 pv4 white-red w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
                                             text "Start new session"
-                                        a(class = "avenir fl tc m2 ph2 pv4 white w-100 w-third-ns", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
+                                        a(class = "avenir fl tl m2 ph2 pv4 white w-100 w-third-ns", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
                                             text "Edit"
 
                         of EditRoutine:
