@@ -21,9 +21,8 @@ var
     concentric_types = ConcentricType.mapIt($it).filterIt(it.contains("Unspecified") == false)
     symmetries = Symmetry.mapIt($it).filterIt(it.contains("Unspecified") == false)
     current_routine: seq[Routine]
-    routine_movement_combos: seq[MovementComboAssignment]
-    finished_sets = 0
-    current_movement_combo_assignment: MovementComboAssignment
+    routine_movement_combos: seq[MovementComboGroup]
+    finished_sets, finished_groups = 0
     current_session: Session
     new_movement_combo_count: int
 
@@ -38,8 +37,15 @@ proc switchTo(p: PageMode, callbacks: seq[proc]) =
 
 proc add_any_new_to[T](x: T, list: seq[T]): seq[T] =
     var return_list = list
-    if list.allIt(not it.id == x.id):
-        return_list.add(x)
+
+    when x is MovementComboGroup:
+
+        if list.allIt(not it.movement_combo.id == x.movement_combo.id):
+            return_list.add(x)
+
+    else:
+        if list.allIt(not it.id == x.id):
+            return_list.add(x)
 
     return return_list
 
@@ -111,8 +117,9 @@ proc getOptionValue(input_node_id: cstring): string =
 
 proc next_movement() =
     finished_sets += 1
-    current_movement_combo_assignment = routine_movement_combos[finished_sets mod routine_movement_combos.len]
 
+proc next_movement_group() =
+    finished_groups += 1
 
 proc create_movement(name_id, area_id, plane_id, concentric_type_id, symmetry_id, description_id: cstring): proc () =
 
@@ -276,10 +283,10 @@ proc readRoutineAssignments() =
     ajaxPost(ReadRoutineAssignments, headers = @[], data = $(%current_routine[0]), proc (status: int, resp: cstring) =
             
         if status == 200:
+            echo "readRoutineassignment response: ", $resp
 
             for mc in ($resp).parseJson:
-                routine_movement_combos = mc.to(MovementComboAssignment).add_any_new_to(routine_movement_combos)
-                current_movement_combo_assignment = routine_movement_combos[finished_sets mod routine_movement_combos.len]
+                routine_movement_combos = mc.to(MovementComboGroup).add_any_new_to(routine_movement_combos)
     )
 
 proc add_movement_combo_option() =
@@ -332,19 +339,34 @@ proc render(): VNode =
 
                             for cr in current_routine:
                                 tdiv(class = "cf w-100"):
-                                    a(class = "avenir fl tl m2 ph2 pv4 white bg-blue w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments])):
-                                        h2:
+                                    a(class = "avenir fl tl m2 ph2 pv4 white bg-blue w-100 w-third-ns"):
+                                        h2(onclick = () => switchTo(Workout, @[readRoutineAssignments])):
                                             text cr.name
                                         a(class = "avenir fl tl m2 ph2 pv4 white-red w-100 w-third-ns", onclick = () => switchTo(Workout, @[readRoutineAssignments, readAllMovementCombos])):
                                             text "Start new session"
-                                        a(class = "avenir fl tl m2 ph2 pv4 white w-100 w-third-ns", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos])):
+                                        a(class = "avenir fl tl m2 ph2 pv4 white w-100 w-third-ns", onclick = () => switchTo(EditRoutine, @[readRoutineAssignments, readAllMovementCombos, readAllMovements])):
                                             text "Edit"
 
                         of EditRoutine:
+                            for movement_combo_group in routine_movement_combos:
+                                # if this is a new movement combo
+                                h3(class = "avenir"):
+                                    text movement_combo_group.movement_combo.name
+                                
+                                for movement in movement_combo_group.movements:
+                                    optionsMenu(name = ("movement_combo_movement_number_" & $movement.id), 
+                                        message = movement.name, options = all_movements.mapIt(it.name))
+                                        
+                                br()
+                                a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_option()):
+                                    text "Add Movement"
+                                a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
+                                    text "Submit Movement Combo"
+
                             
-                            # nested movement combos - arrays sorted by sharing a common movement combo
-                            for movement_combo in all_movement_combos:
-                                optionsMenu(name = "movement_combo", message = "click to change movement combo", options = movement_combo.movements.mapIt(it.name))
+                            # # nested movement combos - arrays sorted by sharing a common movement combo
+                            # for movement_combo in all_movement_combos:
+                            #     optionsMenu(name = "movement_combo", message = "click to change movement combo", options = movement_combo.movements.mapIt(it.name))
 
                         of ManageMovements:
 
@@ -458,32 +480,34 @@ proc render(): VNode =
 
                         of Workout:
                             
-                            var                                 
-                                set = WorkoutSet(
-                                    movement: current_movement_combo_assignment.movement,
-                                    movement_combo: current_movement_combo_assignment.movement_combo,
-                                    reps: 0,
-                                    tempo: "1-0-1-0",
-                                    intensity: Intensity(
-                                        quantity: 5,
-                                        units: Pounds
-                                    ),
-                                    session: current_session,
-                                    set_order: 1
-                                )
+                            if routine_movement_combos.len > 0:
+                                var
+                                    current_movement = routine_movement_combos[finished_groups].movements[finished_sets mod routine_movement_combos[finished_groups].movements.len]   
+                                    set = WorkoutSet(
+                                        movement: current_movement,
+                                        movement_combo: routine_movement_combos[finished_groups].movement_combo,
+                                        reps: 0,
+                                        tempo: "1-0-1-0",
+                                        intensity: Intensity(
+                                            quantity: 5,
+                                            units: Pounds
+                                        ),
+                                        session: current_session,
+                                        set_order: 1
+                                    )
 
-                            for r in current_routine:
-                                createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = fmt"Performing: {r.name}")
-                                createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
-                                header(class = "tc"):
-                                    h1(class = $AttentionHeader & " pb2"):
-                                        text set.movement.name
-                                    input(type = "range", id = "repsInputId", value=($set.reps), min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
-                                    output(id = "repsOutputId", class="pl3 avenir tr"):
-                                        text $set.reps & " reps ?"
-                                    h1(class = $AttentionHeader):
-                                        a(class = $BigGreenButton & " avenir tc", onclick = () => next_movement()):
-                                            text "Done Set"
+                                for r in current_routine:
+                                    createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 4, message = fmt"Performing: {r.name}")
+                                    createSpan(span = InformationSpan, header = AttentionHeader, padding = 2, message = "Right now, do:")
+                                    header(class = "tc"):
+                                        h1(class = $AttentionHeader & " pb2"):
+                                            text set.movement.name
+                                        input(type = "range", id = "repsInputId", value=($set.reps), min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
+                                        output(id = "repsOutputId", class="pl3 avenir tr"):
+                                            text $set.reps & " reps ?"
+                                        h1(class = $AttentionHeader):
+                                            a(class = $BigGreenButton & " avenir tc", onclick = () => next_movement()):
+                                                text "Done Set"
                             # br()
                             # createSpan(span = AttentionSpan, header = DirectiveHeader, padding = 2, message = "This workout so far:")
                             # tdiv(class = "bg-green avenir"):

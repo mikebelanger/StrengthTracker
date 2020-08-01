@@ -236,11 +236,11 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         # load routine based on its user, and that
                     of ReadRoutineAssignments:
 
-                        # what we really want is the movement combos for this
+                        # what we really want is the movement combo groups for this
                         # routine, but we have to query pretty indirectly to get them.
 
                         # first through the routine assignments
-                        let movement_combos = 
+                        let movement_combo_groups = 
                             request.body.db_read(Routine, from_table = RoutineTable)
                                         .map(proc (routine: Routine): seq[JsonNode] =
 
@@ -267,15 +267,41 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                                         .add_foreign_objs
 
                                         )
+                                        
                                         .concat
                                         .into(Existing, MovementComboAssignment)
-                                
-                        case movement_combos.len:
+                                        .map(proc (mc: MovementComboAssignment): MovementComboGroup =
+
+                                            let result = 
+                                                    MovementComboGroup(
+                                                        movement_combo: 
+                                                            MovementComboTable.db_connect.query_matching_all((
+                                                                id: mc.movement_combo.id
+                                                            ))
+                                                            .get()
+                                                            .into(Existing, MovementCombo)
+                                                            .foldl(a),
+
+                                                        movements: 
+                                                            MovementTable.db_connect.query_matching_all((
+                                                                id: mc.movement.id
+                                                            ))
+                                                            .get()
+                                                            .into(Existing, Movement)
+                                                    )
+
+                                            return result
+
+                                        )
+
+
+
+                        case movement_combo_groups.len:
 
                             of 0:
                                 resp Http501, "Error reading routine assignments"
                             else:
-                                resp %*movement_combos      
+                                resp %*movement_combo_groups    
 
 
             # I seem to only need GET and POST
