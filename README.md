@@ -10,10 +10,9 @@ A web-app that tracks your strength exercises.
 * Easy to migrate data out at any time. 
 * An excuse to try Nim :)
 
-
 While I don't want to discourage anyone from customizing this further, I should mention there are some ideas/features that are outside of the current scope:
 
-#### Current non-goals/Limitations
+#### Current Non-Goals/Limitations
 
 * Step-tracking.
 * Nutrition tracking.
@@ -28,7 +27,7 @@ A user will log into the web app on a browser.  This browser could be running on
 
 #### Tech Details
 
-Code for both front, and back-end is mostly written in [Nim](http://www.nim-lang.org).  This breaks down to:
+Code for both front, and back-end is mostly written in [Nim](http://www.nim-lang.org).  The backend compiles to C, the frontend to JS.  This breaks down to:
 
 * Frontend: [Karax](https://github.com/pragmagic/karax) for DOM-manipulating and some [Tachyons](https://tachyons.io/) for style.
 * Backend: [Allographer](https://github.com/itsumura-h/nim-allographer) as an ORM (with a Sqlite db), and [Jester](https://github.com/dom96/jester) for routing.
@@ -46,6 +45,6 @@ You'll need the [latest Nim](https://nim-lang.org/install.html) (at this time, t
 6. Enter `nimble frontend` to compile the front-end code into js, and make it servable by jester.
 7. Finally, start the server by entering `nim c -r src/backend/server.nim`
 
-From there, follow the prompt.  You'll be told to visit http://localhost:5000 in a browser.  Do so and from there, the app should present itself.
+From there, follow the prompt.  You should be asked to open http://localhost:5000 in a browser.
 
 Please let me know of any issues.
