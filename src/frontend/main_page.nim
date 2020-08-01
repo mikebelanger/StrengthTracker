@@ -480,7 +480,7 @@ proc render(): VNode =
                                         text set.movement.name
                                     input(type = "range", id = "repsInputId", value=($set.reps), min = "0", max = "30", oninput = repsSliderToOutput, class = "tl pl2")
                                     output(id = "repsOutputId", class="pl3 avenir tr"):
-                                        text "can you do " & $set.reps & " reps ?"
+                                        text $set.reps & " reps ?"
                                     h1(class = $AttentionHeader):
                                         a(class = $BigGreenButton & " avenir tc", onclick = () => next_movement()):
                                             text "Done Set"
