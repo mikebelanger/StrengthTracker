@@ -24,3 +24,4 @@ const
 
     # Update
     UpdateMovement* = "/update_movement.json"
+    UpdateRoutine* = "/update_active_routine.json"

@@ -292,6 +292,14 @@ proc readRoutineAssignments() =
 proc add_movement_combo_option() =
     new_movement_combo_count += 1
 
+proc add_movement_combo_to_existing_routine() =
+    routine_movement_combos.add(
+        MovementComboGroup()
+    )
+
+proc add_movement(movement_combo_index: int) =
+    routine_movement_combos[movement_combo_index].movements = routine_movement_combos[movement_combo_index].movements.concat(@[Movement(kind: New)])
+
 proc render(): VNode =
     
     if window.location.pathname == "/index.html" or window.location.pathname == "":
@@ -348,20 +356,26 @@ proc render(): VNode =
                                             text "Edit"
 
                         of EditRoutine:
-                            for movement_combo_group in routine_movement_combos:
-                                # if this is a new movement combo
+                            for cr in current_routine:
                                 h3(class = "avenir"):
-                                    text movement_combo_group.movement_combo.name
-                                
-                                for movement in movement_combo_group.movements:
-                                    optionsMenu(name = ("movement_combo_movement_number_" & $movement.id), 
-                                        message = movement.name, options = all_movements.mapIt(it.name))
-                                        
-                                br()
-                                a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_option()):
-                                    text "Add Movement"
-                                a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
-                                    text "Submit Movement Combo"
+                                    text "Editing " & cr.name
+
+                                for index, movement_combo_group in routine_movement_combos:
+                                    # if this is a new movement combo
+                                    br()
+                                    input(class = "avenir pv2 mv4", value=movement_combo_group.movement_combo.name)
+                                    
+                                    for idx, movement in movement_combo_group.movements:
+                                        optionsMenu(name = ("movement_combo_movement_number_" & $idx),
+                                            message = movement.name, options = all_movements.mapIt(it.name))
+                                            
+                                    br()
+                                    a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement(index)):
+                                        text "Add Movement"
+                                    a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_to_existing_routine()):
+                                        text "Add Movement Combo"
+                                    a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
+                                        text "Save Changes to Movement Combo"
 
                             
                             # # nested movement combos - arrays sorted by sharing a common movement combo
