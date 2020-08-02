@@ -4,7 +4,6 @@ import json, sugar
 import ../app_types, ../app_routes
 import components
 import strutils, strformat, sequtils, algorithm
-import jsffi as jsf
 
 type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos, EditRoutine
 var
@@ -192,8 +191,7 @@ proc createMovementCombo() =
 
         # get number
         var name_id = document.getElementById("movement_combo_movement_number_" & $mcn)
-        echo "name_id: ", name_id.value
-        if jsf.isUndefined(name_id.value):            
+        if name_id.value.len > 0:         
             echo "name_id: ", name_id.value
             
             echo "all movements"
@@ -374,10 +372,10 @@ proc render(): VNode =
                                     br()
                                     a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement(index)):
                                         text "Add Movement"
-                                    a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_to_existing_routine()):
-                                        text "Add Movement Combo"
-                                    a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
-                                        text "Save Changes to Movement Combo"
+                                a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_to_existing_routine()):
+                                    text "Add Movement Combo"
+                                a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
+                                    text "Save Changes to Movement Combo"
 
                             
                             # # nested movement combos - arrays sorted by sharing a common movement combo
@@ -552,7 +550,7 @@ proc render(): VNode =
 
                     if not (pageMode == UserMainPage) and current_user.email.len > 0:
                         br()
-                        footer(class = $ReverseSpan & " avenir tl pt2 pb2", onclick = () => switchTo(UserMainPage)):
+                        footer(class = $ReverseSpan & " avenir tl mt3 pt2 pb2", onclick = () => switchTo(UserMainPage)):
                             text "Back to main page"
 
     elif window.location.pathname == "/workout.html":
