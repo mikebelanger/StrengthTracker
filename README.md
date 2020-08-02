@@ -1,4 +1,4 @@
-#### ***Caution: Not Functional Yet.  Only basic operations work.  I'm only sharing for those wanting more examples of Nim Web Development*** ####
+#### ***Caution: Not Functional Yet.  Only basic operations work.  I'm mainly sharing for those wanting more examples of Nim Web Development*** ####
 #### StrengthTracker (** Very WIP **)
 
 A web-app that tracks your strength exercises.

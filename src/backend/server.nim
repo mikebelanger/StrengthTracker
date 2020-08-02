@@ -303,6 +303,11 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             else:
                                 resp %*movement_combo_groups    
 
+                    
+                    # of UpdateRoutine:
+
+                        # let updated_routine =
+                        #     request.body.db_create(MovementCombo, into = MovementComboTable)
 
             # I seem to only need GET and POST
             else:

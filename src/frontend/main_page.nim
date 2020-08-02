@@ -4,6 +4,7 @@ import json, sugar
 import ../app_types, ../app_routes
 import components
 import strutils, strformat, sequtils, algorithm
+import jsffi as jsf
 
 type PageMode = enum Login, UserMainPage, ShowRoutines, Workout, ManageMovements, ManageMovementCombos, EditRoutine
 var
@@ -191,14 +192,15 @@ proc createMovementCombo() =
 
         # get number
         var name_id = document.getElementById("movement_combo_movement_number_" & $mcn)
-
-        if not (name_id.isNil):
+        echo "name_id: ", name_id.value
+        if jsf.isUndefined(name_id.value):            
+            echo "name_id: ", name_id.value
             
             echo "all movements"
             var 
                 movement_name = name_id.value
                 movement = all_movements.filterIt(it.name == movement_name)
-                                        .foldl(a)
+                                        # .foldl(a)
 
             movements.add(movement)
 
