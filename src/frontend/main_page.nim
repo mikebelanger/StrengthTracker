@@ -375,7 +375,7 @@ proc render(): VNode =
                                 a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_to_existing_routine()):
                                     text "Add Movement Combo"
                                 a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
-                                    text "Save Changes to Movement Combo"
+                                    text "Save Changes to This Routine"
 
                             
                             # # nested movement combos - arrays sorted by sharing a common movement combo
