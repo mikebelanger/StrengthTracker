@@ -19,9 +19,9 @@ const
     ReadUser* = "/read_user.json"
     ReadMovement* = "/read_movement.json"
     ReadActiveRoutine* = "/read_active_routine.json"
-    ReadRoutineAssignments* = "/read_routine_assignments.json"
-    ReadSession* = "/read_session.json"
+    ReadMovementCombo* = "/read_movement_combo.json"
 
     # Update
     UpdateMovement* = "/update_movement.json"
-    UpdateRoutine* = "/update_active_routine.json"
+    UpdateMovementCombo* = "/update_movement_combo.json"
+    UpdateActiveRoutine* = "/update_active_routine.json"

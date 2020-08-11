@@ -39,6 +39,7 @@ proc add_any_new_to[T](x: T, list: seq[T]): seq[T] =
     var return_list = list
 
     when x is MovementComboGroup:
+        echo "movement combo id: ", x.movement_combo.id
 
         if list.allIt(not it.movement_combo.id == x.movement_combo.id):
             return_list.add(x)
@@ -71,7 +72,6 @@ proc readMovement(id: int) =
     ajaxPost(url = $ReadMovement, headers = @[], data = $submit_data, proc (status: int, resp: cstring) =
         case status:
             of 200:
-                echo "parsing movement: ", $resp
                 var new_movement = parseJson($resp).mapIt(it.to(Movement))
 
                 for i, movement in all_movements:
@@ -97,7 +97,6 @@ proc readAllMovementCombos() =
 
     ajaxGet(url = $ReadAllMovementComboGroups, headers = @[], proc (status: int, resp: cstring) =
         if status == 200:
-            echo "got response: ", $resp
             all_movement_combos = parseJson($resp).mapIt(it.to(MovementComboGroup))
     )
     
@@ -192,9 +191,7 @@ proc createMovementCombo() =
         # get number
         var name_id = document.getElementById("movement_combo_movement_number_" & $mcn)
         if name_id.value.len > 0:         
-            echo "name_id: ", name_id.value
             
-            echo "all movements"
             var 
                 movement_name = name_id.value
                 movement = all_movements.filterIt(it.name == movement_name)
@@ -272,21 +269,16 @@ proc readRoutine() =
 
         if status == 200:
 
-            echo "active routine: ", $resp
+            current_routine = ($resp).parseJson.getElems.mapIt(it.to(Routine))
 
-            for r in ($resp).parseJson:
-
-                current_routine = r.to(Routine).add_any_new_to(current_routine)
     )
 
 proc readRoutineAssignments() =
     ajaxPost(ReadRoutineAssignments, headers = @[], data = $(%current_routine[0]), proc (status: int, resp: cstring) =
             
         if status == 200:
-            echo "readRoutineassignment response: ", $resp
 
-            for mc in ($resp).parseJson:
-                routine_movement_combos = mc.to(MovementComboGroup).add_any_new_to(routine_movement_combos)
+            routine_movement_combos = ($resp).parseJson.getElems.mapIt(it.to(MovementComboGroup))
     )
 
 proc add_movement_combo_option() =
@@ -297,8 +289,45 @@ proc add_movement_combo_to_existing_routine() =
         MovementComboGroup()
     )
 
-proc add_movement(movement_combo_index: int) =
-    routine_movement_combos[movement_combo_index].movements = routine_movement_combos[movement_combo_index].movements.concat(@[Movement(kind: New)])
+proc update_active_routine() =
+
+    for routine in current_routine:
+
+        # this loop gets the routine assignments
+        for index, movement_combo_group in routine_movement_combos:
+            var r = RoutineMovementComboAssignment(
+                routine: routine,
+                routine_order: index,
+                movement_combo: movement_combo_group.movement_combo
+            )
+
+            var elem = document.getElementById("current_routine_movement_combo_number_" & $index)
+            
+            if not elem.value.isNil:
+                r.movement_combo.name = $elem.value
+
+            # now create the movement combo assignments
+            for idx, movement in movement_combo_group.movements:
+                var d = document.getElementById("routine_movement_combo_movement_number_" & $idx)
+                if not d.value.isNil:
+                    r.movements = r.movements.concat(all_movements.filterIt(it.name == $d.value))
+
+            ajaxPost(url = UpdateActiveRoutine, headers = @[],data = $(%*r), proc (status: int, resp: cstring) =
+
+                if status == 200:
+                    echo "routine assignment success!"
+
+            )
+
+
+proc add_movement(e: Event) =
+
+    echo $e.target.nodeValue
+    # echo movement_combo_id
+    
+    # for rmc in routine_movement_combos:
+    #     if rmc.movement_combo.id == movement_combo_id.parseInt:
+    #         rmc.movements.add(Movement())
 
 proc render(): VNode =
     
@@ -363,18 +392,21 @@ proc render(): VNode =
                                 for index, movement_combo_group in routine_movement_combos:
                                     # if this is a new movement combo
                                     br()
-                                    input(class = "avenir pv2 mv4", value=movement_combo_group.movement_combo.name)
+                                    input(class = "avenir pv2 mv4", id = "current_routine_movement_combo_number_" & $index, value=movement_combo_group.movement_combo.name)
                                     
                                     for idx, movement in movement_combo_group.movements:
-                                        optionsMenu(name = ("movement_combo_movement_number_" & $idx),
-                                            message = movement.name, options = all_movements.mapIt(it.name))
+                                        optionsMenu(name = ("routine_movement_combo_movement_number_" & $idx),
+                                            message = movement.name, 
+                                            selected = movement.name,
+                                            options = all_movements.mapIt(it.name))
                                             
                                     br()
-                                    a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement(index)):
+                                    a(class = $BigBlueButton & " avenir tc", onclick = () => routine_movement_combos[index].movements.add(Movement())):
                                         text "Add Movement"
+
                                 a(class = $BigBlueButton & " avenir tc", onclick = () => add_movement_combo_to_existing_routine()):
                                     text "Add Movement Combo"
-                                a(class = $BigGreenButton & " avenir tc", onclick = () => createMovementCombo()):
+                                a(class = $BigGreenButton & " avenir tc", onclick = () => update_active_routine()):
                                     text "Save Changes to This Routine"
 
                             

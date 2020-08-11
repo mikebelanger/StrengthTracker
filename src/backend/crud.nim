@@ -1,7 +1,7 @@
 import ../app_types, database_schema
 import allographer/query_builder
 import json, typetraits
-import sequtils, strutils, strformat
+import sequtils, strutils
 import times
 import segfaults
 
@@ -29,10 +29,7 @@ proc to_json*(objs: seq[Movement] |
                     seq[MovementCombo] | 
                     seq[MovementComboAssignment] | 
                     seq[User] | 
-                    seq[Session] |
                     seq[Routine] |
-                    seq[Intensity] |
-                    seq[RoutineAssignment] |
                     seq[WorkoutSet]): seq[JsonNode] =
 
     result = @[]
@@ -45,15 +42,8 @@ proc to_json*(objs: seq[Movement] |
             for key, val in obj.fieldPairs:
 
                 if not restricted.contains(key):
-                    
-                    # TODO: Figure out why this works
-                    when val is YYYYMMDD:
-
-                        to_json{key}= %*val.strftime
-                    
-                    else:
-                    
-                        to_json{key}= %*val
+                                        
+                    to_json{key}= %*val
 
             result.add(to_json)
 
@@ -124,7 +114,7 @@ proc query_matching_all*(table: RDB, criteria: tuple): RDB =
         result = table.where(each_property, "=", $content)
 
 
-proc db_connect*(data_table: DataTable): RDB =
+converter db_connect*(data_table: DataTable): RDB =
     RDB().table($data_table).select()
 
 
@@ -143,76 +133,16 @@ proc is_complete*(x: object): bool =
 
     return true
 
-proc str_to_YYYYMMDD(str: string): YYYYMMDD =
-
-    let
-        ymd = str.split("-")
-
-    if ymd.len == 3:
-        
-        result = YYYYMMDD(
-            Year : ymd[0].parseInt,
-            Month : ymd[1].parseInt,
-            Day : ymd[2].parseInt
-        )
-
- 
-
 proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
     result = @[]
 
     for j in js: 
-
+        var to_convert = parseJson("{}")
+        to_convert{"kind"}= %e
+        
         try:
-
-            when t is Session:
-                
-                if e == New:
-                    let obj = Session(
-                        kind: New,
-                        session_date: j{"session_date"}.getStr(default = "0000-00-00").str_to_YYYYMMDD,
-                        routine: j{"routine"}.to(Routine)
-                    )
-
-                    result.add(obj)
-                
-                else:
-
-                    let obj = Session(
-                        id: j{"id"}.getInt(-1), 
-                        kind: Existing,
-                        session_date: j{"session_date"}.getStr(default = "0000-00-00").str_to_YYYYMMDD,
-                        routine: j{"routine"}.to(Routine)
-                    )
-
-                    result.add(obj)
-
-            else:
-                var to_convert = parseJson("{}")
-                to_convert{"kind"}= %e
-
-                for key in j.keys:
-                    
-                    case j{key}.kind:
-
-                        of JFloat:
-                            to_convert{key}= newJFloat(j{key}.getFloat(1.0))
-
-                        of JObject:
-                            
-                            to_convert{key}= %*j{key}
-
-                            if key == "session":
-
-                                to_convert{key}{"session_date"}= %*j{key}{"session_date"}.getStr("0000-00-00").str_to_YYYYMMDD
-
-                        else:
-                            to_convert{key}= %*j{key}
-
-                let obj = to_convert.to(t)
-
-                result.add(obj)
-
+            
+            result.add(to_convert.to(t))
 
         except:
             echo "into error: ", getCurrentExceptionMsg()
@@ -231,17 +161,6 @@ proc get_id*(js: seq[JsonNode]): seq[int] =
         except:
             echo "error getting id: ", getCurrentExceptionMsg()
 
-converter to_YYYYMMDD*(dt: DateTime): YYYYMMDD =
-    
-    # TODO: add the times fields
-    result = YYYYMMDD(
-        Year: ord(dt.year),
-        Month: ord(dt.month),
-        Day: ord(dt.monthday)
-    )
-
-proc strftime*(ymd: YYYYMMDD, sep="-"): string =
-    &"{ymd.Year}{sep}{ymd.Month:02}{sep}{ymd.Day:02}"
 
 proc db_read_from_id*(ids: seq[int], into: DataTable): seq[JsonNode] =
     result = @[]

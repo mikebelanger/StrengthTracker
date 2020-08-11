@@ -22,16 +22,14 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         redirect Index
 
                     of ReadAllMovement:
-                        var all_movements = MovementTable.db_connect
-                                                         .select()
+                        var all_movements = MovementTable.select()
                                                          .get()
                                                          .into(Existing, Movement)
                         resp %*all_movements
 
                     of ReadAllUsers:
 
-                        var all_users = UserTable.db_connect
-                                                 .select
+                        var all_users = UserTable.select
                                                  .get()
                                                  .into(Existing, User)
                         resp %*all_users
@@ -39,28 +37,27 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                     of ReadAllMovementComboGroups:
 
                         var 
-                            all_assignments = MovementComboTable.db_connect
-                                                                .select
-                                                                .get()
-                                                                .into(Existing, MovementCombo)
-                                                                .map(proc (mc: MovementCombo): MovementComboGroup =
+                            all_assignments = 
+                                MovementComboTable.select
+                                    .get()
+                                    .into(Existing, MovementCombo)
+                                    .map(proc (mc: MovementCombo): MovementComboGroup =
 
-                                                                    result = MovementComboGroup(
-                                                                        movement_combo: mc,
-                                                                        movements: 
-                                                                            MovementComboAssignmentTable
-                                                                                .db_connect
-                                                                                .select
-                                                                                .where("movement_combo_id", "=", mc.id)
-                                                                                .get()
-                                                                                .add_foreign_objs
-                                                                                .into(Existing, MovementComboAssignment)
-                                                                                .mapIt(it.movement)
-                                                                    )
+                                        result = MovementComboGroup(
+                                            movement_combo: mc,
+                                            movements: 
+                                                MovementComboAssignmentTable
+                                                    .select
+                                                    .where($MovementComboTable.id, "=", mc.id)
+                                                    .get()
+                                                    .add_foreign_objs
+                                                    .into(Existing, MovementComboAssignment)
+                                                    .mapIt(it.movement)
+                                        )
 
-                                                                    return result
+                                        return result
 
-                                                                )
+                                    )
 
 
                         resp %*all_assignments
@@ -72,6 +69,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
             of HttpPost:
             
                 case request.pathInfo:
+                    
                     of CreateMovement:
 
                         let 
@@ -151,9 +149,9 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                         var to_insert_array: seq[JsonNode]
 
                                         for m in nmcr.movements:
-                                            to_insert_array.add(%*{"movement_id": m.id, "movement_combo_id" : nmcr.movement_combo.id})
+                                            to_insert_array.add(%*{$MovementTable.id: m.id, $MovementComboTable.id : nmcr.movement_combo.id})
 
-                                        return MovementComboAssignmentTable.db_connect.insertID(to_insert_array)
+                                        return MovementComboAssignmentTable.insertID(to_insert_array)
 
                                     )
                                     .concat
@@ -181,16 +179,6 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             else:
                                 resp %*routine                   
 
-                    of ReadSession:
-
-                        let session =
-                            request.body.db_read(Session, from_table = SessionTable)
-
-                        case session.len:
-                            of 0:
-                                resp Http501, "Could not load session"
-                            else:
-                                resp %*session                   
 
                     of ReadUser:
 
@@ -211,7 +199,7 @@ proc match(request: Request): Future[ResponseData] {.async.} =
 
                                 try:
                                     result =
-                                        RoutineTable.db_connect.query_matching_all((
+                                        RoutineTable.query_matching_all((
 
                                             user_id: user_id,
                                             active: true
@@ -233,81 +221,18 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                             else:
                                 resp %*active_routine
 
-                        # load routine based on its user, and that
-                    of ReadRoutineAssignments:
-
-                        # what we really want is the movement combo groups for this
-                        # routine, but we have to query pretty indirectly to get them.
-
-                        # first through the routine assignments
-                        let movement_combo_groups = 
-                            request.body.db_read(Routine, from_table = RoutineTable)
-                                        .map(proc (routine: Routine): seq[JsonNode] =
-
-                                            return RoutineAssignmentTable
-                                                        .db_connect
-                                                        .query_matching_any(
-                                                            (routine_id: routine.id)
-                                                        )
-                                                        .orderBy("routine_order", Asc)
-                                                        .get()
-                                                        .add_foreign_objs
-
-                                        )
-                                        .concat
-                                        .into(Existing, RoutineAssignment)
-                                        .map(proc (ra: RoutineAssignment): seq[JsonNode] =
-
-                                            return MovementComboAssignmentTable
-                                                        .db_connect
-                                                        .query_matching_all(
-                                                            (movement_combo_id: ra.movement_combo.id)
-                                                        )
-                                                        .get()
-                                                        .add_foreign_objs
-
-                                        )
-                                        
-                                        .concat
-                                        .into(Existing, MovementComboAssignment)
-                                        .map(proc (mc: MovementComboAssignment): MovementComboGroup =
-
-                                            let result = 
-                                                    MovementComboGroup(
-                                                        movement_combo: 
-                                                            MovementComboTable.db_connect.query_matching_all((
-                                                                id: mc.movement_combo.id
-                                                            ))
-                                                            .get()
-                                                            .into(Existing, MovementCombo)
-                                                            .foldl(a),
-
-                                                        movements: 
-                                                            MovementTable.db_connect.query_matching_all((
-                                                                id: mc.movement.id
-                                                            ))
-                                                            .get()
-                                                            .into(Existing, Movement)
-                                                    )
-
-                                            return result
-
-                                        )
-
-
-
-                        case movement_combo_groups.len:
-
-                            of 0:
-                                resp Http501, "Error reading routine assignments"
-                            else:
-                                resp %*movement_combo_groups    
-
                     
-                    # of UpdateRoutine:
+                    of UpdateActiveRoutine:
 
-                        # let updated_routine =
-                        #     request.body.db_create(MovementCombo, into = MovementComboTable)
+                        let updated_active_routine =
+                            request.body
+                            .to_json
+
+                        if updated_active_routine:
+                            resp Http200
+                        else:
+                            resp Http501, "could not update all assignments"
+
 
             # I seem to only need GET and POST
             else:

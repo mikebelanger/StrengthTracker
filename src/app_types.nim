@@ -1,11 +1,6 @@
 type
-    # cannot convert json datetimes -> nim's DAteTime's data structures (from times module)
-    # for more info, see here:
-    # https://forum.nim-lang.org/t/4106
-    # workaround - use our own custom date object
 
-    YYYYMMDD* = object
-        Year*, Month*, Day*: int
+    ### Types that don't have a corresponding table in the db
 
     MovementPlane* = enum
         UnspecifiedPlane
@@ -33,6 +28,12 @@ type
         Unilateral
         Bilateral
 
+    IntensityUnits* = enum
+        UnspecifiedIntensityUnit
+        Pounds
+        Kilograms
+        PercentageOfOneRepMax
+
     EntryKind* = enum
         New
         Existing
@@ -42,24 +43,20 @@ type
             of New: nil
             of Existing: id*: Positive
 
+    #### Types that have a corresponding type in the db
     User* = object of Entry
-        name*: string
-        email*: string
+        name*, email*: string
 
     Movement* = object of Entry
-        name*: string
+        name*, description*: string
         plane*: MovementPlane
         area*: MovementArea
         concentric_type*: ConcentricType
         symmetry*: Symmetry
-        description*: string
-
-    Session* = object of Entry
-        session_date*: YYYYMMDD
-        routine*: Routine
 
     MovementCombo* = object of Entry
         name*: string
+        routine_order*: int
 
     Routine* = object of Entry
         name*: string
@@ -69,33 +66,18 @@ type
     MovementComboAssignment* = object of Entry
         movement*: Movement
         movement_combo*: MovementCombo
-
-    RoutineAssignment* = object of Entry
-        movement_combo*: MovementCombo
         routine*: Routine
-        routine_order*: int
-
-    IntensityUnits* = enum
-        UnspecifiedIntensityUnit
-        Pounds
-        Kilograms
-        PercentageOfOneRepMax
-
-    Intensity* = object of Entry
-        quantity*: float32
-        units*: IntensityUnits
             
     WorkoutSet* = object of Entry
         movement*: Movement
         movement_combo*: MovementCombo
-        reps*: int
-        tempo*: string
-        intensity*: Intensity
-        session*: Session
-        duration_in_minutes*: int
-        set_order*: int
+        routine*: Routine
+        intensity*: float
+        intensity_units*: IntensityUnits
+        set_date*: string
+        start_duration*, eccentric_duration*, concentric_duration*, end_duration*, set_duration*, routine_order*, reps, duration_in_minutes: int
 
-    # Request-specific stuff
-    MovementComboGroup* = object
+    # Request-specific stuff - nothing in db
+    MovementComboGroup* = ref object of RootObj
         movement_combo*: MovementCombo
         movements*: seq[Movement]
