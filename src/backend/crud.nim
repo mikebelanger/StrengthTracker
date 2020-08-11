@@ -15,6 +15,44 @@ const foreign_prefixes = DataTable.mapIt($it)
 #### HELPERS ####
 #################
 
+proc get_obj_columns*(obj: object): seq[JsonNode] =
+    result = @[]
+
+    for key, val in obj.fieldPairs:
+
+        when val is string:
+            result.add(%*{
+                "type": "text",
+                "title": key,
+                "width": 200,
+            })
+        
+        when val is MovementPlane or 
+            val is MovementArea or 
+            val is ConcentricType or 
+            val is Symmetry:
+                result.add(%*{
+                    "type": "dropdown",
+                    "title": key,
+                    "width": 120,
+                    "source": val.typeof.mapIt($it)
+                })
+
+        when val is int:
+            
+            var to_add = %*{
+                "type": "number",
+                "title": key,
+                "width": 100,
+            }
+
+            if key == "id":
+                to_add{"read_only"}= %*true
+
+            result.add(to_add)
+
+    return result
+
 proc to_json*(input: string): seq[JsonNode] =
     result = @[]
 
@@ -137,7 +175,7 @@ proc into*(js: seq[JsonNode], e: EntryKind, t: typedesc): seq[t] =
     result = @[]
 
     for j in js: 
-        var to_convert = parseJson("{}")
+        var to_convert = j
         to_convert{"kind"}= %e
         
         try:

@@ -22,10 +22,15 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         redirect Index
 
                     of ReadAllMovement:
-                        var all_movements = MovementTable.select()
+                        let 
+                            all_movements = MovementTable.select()
                                                          .get()
                                                          .into(Existing, Movement)
-                        resp %*all_movements
+                            columns = Movement().get_obj_columns
+
+
+                        resp %*{"all_movements" : all_movements, 
+                                "columns": columns}
 
                     of ReadAllUsers:
 
@@ -222,16 +227,16 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                                 resp %*active_routine
 
                     
-                    of UpdateActiveRoutine:
+                    # of UpdateActiveRoutine:
 
-                        let updated_active_routine =
-                            request.body
-                            .to_json
+                    #     let updated_active_routine =
+                    #         request.body
+                    #         .to_json
 
-                        if updated_active_routine:
-                            resp Http200
-                        else:
-                            resp Http501, "could not update all assignments"
+                    #     if updated_active_routine:
+                    #         resp Http200
+                    #     else:
+                    #         resp Http501, "could not update all assignments"
 
 
             # I seem to only need GET and POST
