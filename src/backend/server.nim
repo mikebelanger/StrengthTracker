@@ -22,15 +22,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                         redirect Index
 
                     of ReadAllMovement:
-                        let 
-                            all_movements = MovementTable.select()
-                                                         .get()
-                                                         .into(Existing, Movement)
-                            columns = Movement().get_obj_columns
 
-
-                        resp %*{"all_movements" : all_movements, 
-                                "columns": columns}
+                        resp MovementTable.render_jexcel_table(Movement())
 
                     of ReadAllUsers:
 

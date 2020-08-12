@@ -33,7 +33,7 @@
                         // Action to be performed when the document is read;
                         var obj_response = JSON.parse(this.response)
                         var columns = obj_response.columns
-                        var data = obj_response.all_movements.map(function(movement) {
+                        var data = obj_response.data.map(function(movement) {
                             return Object.values(movement)
                         })
 

@@ -15,7 +15,7 @@ const foreign_prefixes = DataTable.mapIt($it)
 #### HELPERS ####
 #################
 
-proc get_obj_columns*(obj: object): seq[JsonNode] =
+proc get_columns*(obj: object): seq[JsonNode] =
     result = @[]
 
     for key, val in obj.fieldPairs:
@@ -52,6 +52,21 @@ proc get_obj_columns*(obj: object): seq[JsonNode] =
             result.add(to_add)
 
     return result
+
+proc render_jexcel_table*(d: DataTable, o: object): JsonNode =
+    let objects = d.get().into(Existing, o.typeof)
+    var data: seq[seq[string]]
+
+    for each_object in objects:
+        var object_vals: seq[string]
+
+        for key, val in each_object.fieldPairs:
+            object_vals.add($val)
+
+        data.add(object_vals)
+
+    result = %*{ "columns" : o.get_columns,
+                 "data" : data }
 
 proc to_json*(input: string): seq[JsonNode] =
     result = @[]
