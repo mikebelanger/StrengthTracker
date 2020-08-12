@@ -36,29 +36,44 @@ proc get_columns*(obj: object): seq[JsonNode] =
                     "title": key,
                     "width": 120,
                     "source": val.typeof.mapIt($it)
-                })
+                })       
+
+        when val is EntryKind:
+            result.add(
+                %*{
+                    "type": "dropdown",
+                    "title": key,
+                    "width": 50,
+                    "source": EntryKind.mapIt($it),
+                    "readOnly": true
+                }
+            )
 
         when val is int:
             
-            var to_add = %*{
+            result.add(%*{
                 "type": "number",
                 "title": key,
                 "width": 100,
-            }
+            })
 
-            if key == "id":
-                to_add{"read_only"}= %*true
-
-            result.add(to_add)
+    result.add(%*{
+        "type": "number",
+        "title": "id",
+        "width" : 50,
+        "readOnly" : true
+    })
 
     return result
 
 proc render_jexcel_table*(d: DataTable, o: object): JsonNode =
     let objects = d.get().into(Existing, o.typeof)
-    var data: seq[seq[string]]
+    var 
+        data: seq[seq[string]]
 
     for each_object in objects:
-        var object_vals: seq[string]
+        var 
+            object_vals: seq[string]
 
         for key, val in each_object.fieldPairs:
             object_vals.add($val)
