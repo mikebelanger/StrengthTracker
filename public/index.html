@@ -40,6 +40,7 @@
                             columns: obj_response.columns
                         });
                         
+                        // hide ID and kind columns from user.  Basically the equivalent of a hidden field
                         obj_response.columns.forEach(function(column, index) {
                             if (column.title == 'id' || column.title == 'kind') {
                                 movements.hideColumn(index);
@@ -75,16 +76,22 @@
                 // console.log(instance.jexcel.options.meta)
                 var row_data = instance.jexcel.getRowData(row);
                 console.log(row_data)
-                console.log(instance)
-                var existing;
+                console.log(instance.jexcel.options.columns)
+
+                var is_new;
+                instance.jexcel.options.columns.forEach(function(column, index){
+                    if (column.title == "kind") {
+                        is_new = row_data[index];
+                    }
+                })
+                
+                console.log("is this an existing entry: ", is_new == "Existing");
 
                 // instance.options.columns.forEach(function(column, index) {
                 //     if (column.title == "kind") {
                 //         existing = row_data[index]
                 //     }
                 // })
-
-                console.log(existing);
 
                 // http.send(JSON.stringify(to_json))
             }
