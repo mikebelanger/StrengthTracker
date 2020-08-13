@@ -69,7 +69,8 @@ proc match(request: Request): Future[ResponseData] {.async.} =
                 case request.pathInfo:
                     
                     of CreateMovement:
-
+                        
+                        echo request.body
                         let 
                             movement_creation = 
 

@@ -14,89 +14,123 @@
         }
     </style>
         <script>
+            var is_complete = function(obj) {
+                var user_vals = []
+                
+                for (var property in obj) {
 
-            // var columns = [
-            //         // { type: 'text', title:'name', width:120 },
-            //         // { type: 'dropdown', title:'Concentric Type', width:200, source:[ "Push", "Pull", "Squat", "Hinge" ] },
-            //         // { type: 'dropdown', title:'Area', width:200, source:[ "Upper", "Lower", "Full" ] },
-            //         // { type: 'dropdown', title: 'Symmetry', width: 200, source: ["Bilateral", "Unilateral"]},
-            //         // { type: 'number', title: 'id', readonly: true },
-            //         // { type: 'dropdown', title: 'Plane', width: 200, source: ["Horizontal", "Vertical", "Lateral"]},
-            //         // { type: 'text', title: 'Description', width: 200}
-            //     ]
-
-            var columns = []
-            var load_all_movements = function(instance, cell, col, row, value) {
-                var xhttp = new XMLHttpRequest();
-                xhttp.onreadystatechange = function() {
-                    if (this.readyState == 4 && this.status == 200) {
-                        // Action to be performed when the document is read;
-                        var obj_response = JSON.parse(this.response)
-                        var movements = jexcel(document.getElementById('spreadsheet'), {
-                            data: obj_response.data,
-                            fullscreen: true,
-                            search:true,
-                            onchange: changed,
-                            columns: obj_response.columns
-                        });
-                        
-                        // hide ID and kind columns from user.  Basically the equivalent of a hidden field
-                        obj_response.columns.forEach(function(column, index) {
-                            if (column.title == 'id' || column.title == 'kind') {
-                                movements.hideColumn(index);
-                            }
-                        })
-                        // obj_response.columns.forEach(function(column, index) {
-                        //     instance.jexcel.insertColumn(1, index, false, column)
-                        // })
-
-                        // obj_response.all_movements.forEach(function(movement,index) {
-                        //     console.log(movement, index)
-                        //     var vals = Object.values(movement)
-                        //     console.log(vals)
-                        //     // instance.jexcel.setRowData(index, vals)
-                        //     vals.forEach(function(movement_attr, attr_index) {
-                        //         instance.jexcel.setValue(attr_index, movement_attr)
-                        //     })
-                        // })
-
+                    if (property !== 'id' && property !== 'kind') {
+                        user_vals.push(obj[property])
                     }
-                };
-                xhttp.open("GET", "/read_all_movements.json", true);
-                xhttp.send(); 
+                }
+
+                return user_vals.every(function(x) { return x.toString().length > 0 })
+            }
+
+            var ajax_call = function(protocol_type, url, data) {
+
+                var promiseObj = new Promise(function(resolve, reject) {
+                    var xhttp = new XMLHttpRequest();
+
+                    xhttp.onreadystatechange = function() {
+                        if (this.readyState == 4) {
+                            if (this.status == 200) {
+                                resolve(JSON.parse(this.response))
+                            
+                            } else {
+                                reject(this.status)
+                            }
+                        
+                        } else {
+                            console.log("XHR process happening");
+                        }
+                    }
+                    xhttp.open(protocol_type, url, true);
+                    xhttp.setRequestHeader('Content-Type', 'application/json');
+
+                    if (data) {
+                        xhttp.send(data); 
+                    } else {
+                        xhttp.send()
+                    }
+
+                })
+
+                return promiseObj;
+
+            }
+            
+            var handle_error = function(response) {
+                console.log("error loading: ", response)
+            }
+
+            var submit
+
+            var render_movement_table = function(response) {
+
+                var movements = jexcel(document.getElementById('spreadsheet'), {
+                    data: response.data,
+                    fullscreen: true,
+                    search:true,
+                    onchange: changed,
+                    columns: response.columns
+                });
+                
+                // hide ID and kind columns from user.  Basically the equivalent of a hidden field
+                response.columns.forEach(function(column, index) {
+                    if (column.title == 'id' || column.title == 'kind') {
+                        movements.hideColumn(index);
+                    }
+                })
             }
 
             var changed = function(instance, cell, col, row, value) {
-
-                var http = new XMLHttpRequest();
-                var url = "/save_movements.json"
-                http.open('POST', url);
-                http.setRequestHeader('Content-Type', 'application/json');
-
+                
                 // console.log(instance.jexcel.options.meta)
                 var row_data = instance.jexcel.getRowData(row);
-                console.log(row_data)
-                console.log(instance.jexcel.options.columns)
 
                 var is_new;
+                var user_input = {}
+
                 instance.jexcel.options.columns.forEach(function(column, index){
-                    if (column.title == "kind") {
-                        is_new = row_data[index];
-                    }
+                    user_input[column.title] = row_data[index];
                 })
+
+                if (user_input.kind == "") {
+                    user_input.kind = "New"
+                }
                 
-                console.log("is this an existing entry: ", is_new == "Existing");
+                if (is_complete(user_input)) {
+                    var which_url;
 
-                // instance.options.columns.forEach(function(column, index) {
-                //     if (column.title == "kind") {
-                //         existing = row_data[index]
-                //     }
-                // })
+                    if (typeof user_input.id == "string") {
+                        user_input.id = parseInt(user_input.id)
+                    }
+                    
+                    if (user_input.kind == "Existing") {
 
-                // http.send(JSON.stringify(to_json))
+                        which_url = "/update_movement.json"
+                    
+                    } else {
+
+                        which_url = "/create_movement.json"
+                    }
+
+                    ajax_call('POST', which_url, JSON.stringify(user_input)).then(function (resolve, error) {
+                        
+                        if (resolve) {
+                            console.log("worked!");
+                        } else if (error) {
+                            console.log("something went wrong")
+                        }
+                        
+                    })
+                }
             }
 
-        load_all_movements()
+
+        // call server to get all movements
+        ajax_call("GET", "/read_all_movements.json").then(render_movement_table, handle_error);
 
         </script>
 </body>
