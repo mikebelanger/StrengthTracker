@@ -1,5 +1,4 @@
 import allographer/schema_builder
-import sequtils
 
 type
     TableNames* = enum
