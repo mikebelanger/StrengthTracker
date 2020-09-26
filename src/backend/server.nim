@@ -34,7 +34,7 @@ proc onRequest(req: Request): Future[void] {.gcsafe.} =
                     .string_to_json
                     .read_param(id)
                     .read(User)
-                    .get()
+                    .get
 
                 case response.len:
                     of 0:
@@ -45,13 +45,20 @@ proc onRequest(req: Request): Future[void] {.gcsafe.} =
             of ReadAllUsers:
 
                 let response = 
-                    User.select().get()
+                    User
+                    .select
+                    .get
+                    .to_jexcel
 
                 case response.len:
                     of 0:
                         req.send("could not get value")
                     else:
                         req.send(Http200, $(%*response))
+
+            of "/users.html":
+                let user_html = readFile("/Users/mikebelanger/Dev/Personal/StrengthTracker/public/users.html")
+                req.send(Http200, $user_html)
 
             else:
                 req.send(Http404)

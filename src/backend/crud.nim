@@ -63,3 +63,13 @@ proc delete*(params: seq[JsonNode], t: TableNames): bool =
             except:
                 echo getCurrentExceptionMsg()
                 return false
+
+proc to_jexcel*(json_nodes: seq[JsonNode]): seq[JsonNode] =
+    var columns, data: seq[string]
+
+    for jnodes in json_nodes:
+        for key in jnodes.keys:
+            if not columns.contains(key):
+                columns.add(key)
+            
+            data.add(jnodes{key}.getStr)
