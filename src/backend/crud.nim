@@ -88,7 +88,7 @@ proc to_jexcel*(json_nodes: seq[JsonNode]): JsonNode =
 proc jexcel_user_table*(jnodes: seq[JsonNode]): UserTable =
     try:
         result = UserTable(
-            data: jnodes.map((node) => node.to(UserRow)),
+            data: jnodes.map((each_node) => each_node.to(UserRow)),
             columns: [
                 JExcelColumn(`type`: Numeric, title: "id", width: 100),
                 JExcelColumn(`type`: Text, title: "name", width: 100),
