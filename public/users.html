@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<head>
+    <link href="./css/tachyons.min.css" type="text/css" rel="stylesheet">
+    <link href="./css/jexcel.css" type="text/css" rel="stylesheet">
+    <link href="./css/jsuites.css" type="text/css" rel="stylesheet">
+    <script src="./js/jexcel.js"></script>
+    <script src="./js/jsuites.js"></script>
+</head>
+<body>
+    <article class="cf ph4 pv4 bg-green ph5-ns bt b--black-10 tc" style="font-family: Avenir; font-size: 2rem; color: white;">
+        Manage Users
+    </article>
+    <div id="spreadsheet" class="ph5-ns"></div>
+    <style>
+        #ROOT {
+            background-color: khaki;
+        }
+    </style>
+        <script>
+            var is_complete = function(obj) {
+                var user_vals = []
+                
+                for (var property in obj) {
+
+                    if (property !== 'id' && property !== 'kind') {
+                        user_vals.push(obj[property])
+                    }
+                }
+
+                return user_vals.every(function(x) { return x.toString().length > 0 })
+            }
+
+            var ajax_call = function(protocol_type, url, data) {
+
+                var promiseObj = new Promise(function(resolve, reject) {
+                    var xhttp = new XMLHttpRequest();
+
+                    xhttp.onreadystatechange = function() {
+                        if (this.readyState == 4) {
+                            if (this.status == 200) {
+                                resolve(JSON.parse(this.response))
+                            
+                            } else {
+                                reject(this.status)
+                            }
+                        
+                        } else {
+                            console.log("XHR process happening");
+                        }
+                    }
+                    xhttp.open(protocol_type, url, true);
+                    xhttp.setRequestHeader('Content-Type', 'application/json');
+
+                    if (data) {
+                        xhttp.send(data); 
+                    } else {
+                        xhttp.send()
+                    }
+
+                })
+
+                return promiseObj;
+
+            }
+            
+            var handle_error = function(response) {
+                console.log("error loading: ", response)
+            }
+
+            var render_table = function(response) {
+
+                console.log(response);
+
+                var table = jexcel(document.getElementById('spreadsheet'), {
+                    data: response.data,
+                    // fullscreen: true,
+                    search:true,
+                    onchange: changed,
+                    columns: response.columns,
+                    wordWrap: true
+                });
+                
+                // hide ID and kind columns from user.  Basically the equivalent of a hidden field
+                table.columns.forEach(function(column, index) {
+                    if (column == 'id' || column == 'kind') {
+                        table.hideColumn(index);
+                    }
+                })
+
+                movements.insertRow(1, 1, true);
+            }
+
+            var changed = function(instance, cell, col, row, value) {
+                
+                // console.log(instance.jexcel.options.meta)
+                var row_data = instance.jexcel.getRowData(row);
+
+                var is_new;
+                var user_input = {}
+
+                instance.jexcel.options.columns.forEach(function(column, index){
+                    user_input[column.title] = row_data[index];
+                })
+
+                if (user_input.kind == "") {
+                    user_input.kind = "New"
+                }
+                
+                if (is_complete(user_input)) {
+                    var which_url;
+
+                    if (typeof user_input.id == "string") {
+                        user_input.id = parseInt(user_input.id)
+                    }
+                    
+                    if (user_input.kind == "Existing") {
+
+                        which_url = "/update_user.json"
+                    
+                    } else {
+
+                        which_url = "/create_user.json"
+                    }
+
+                    ajax_call('POST', which_url, JSON.stringify(user_input)).then(function (resolve, error) {
+                        
+                        if (resolve) {
+                            console.log("worked!");
+                        } else if (error) {
+                            console.log("something went wrong")
+                        }
+                        
+                    })
+                }
+            }
+
+
+        // call server to get all movements
+        ajax_call("GET", "/read_all_users.json").then(render_table, handle_error);
+
+        </script>
+</body>
+</html>
