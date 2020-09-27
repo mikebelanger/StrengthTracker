@@ -81,13 +81,12 @@
                 });
                 
                 // hide ID and kind columns from user.  Basically the equivalent of a hidden field
-                table.columns.forEach(function(column, index) {
-                    if (column == 'id' || column == 'kind') {
+                table.options.columns.forEach(function(column, index) {
+                    if (column.title == 'id' || column.title == 'kind') {
                         table.hideColumn(index);
                     }
                 })
 
-                movements.insertRow(1, 1, true);
             }
 
             var changed = function(instance, cell, col, row, value) {

@@ -1,6 +1,7 @@
 import allographer/query_builder
 import schema
 import json
+import sequtils
 
 converter load_table*(t: TableNames): RDB =
     RDB().table(t)
@@ -65,14 +66,20 @@ proc delete*(params: seq[JsonNode], t: TableNames): bool =
                 return false
 
 proc to_jexcel*(json_nodes: seq[JsonNode]): JsonNode =
-    var columns, data: seq[string]
+    var columns, data: seq[JsonNode]
 
     for jnodes in json_nodes:
         for key in jnodes.keys:
-            if not columns.contains(key):
-                columns.add(key)
+            if not (columns.anyIt(it{"title"}.getStr == key)):
+                columns.add(
+                    %*{
+                        "type": "text",
+                        "title": key,
+                        "width": 100
+                    }
+                )
             
-            data.add(jnodes{key}.getStr)
+            data.add(jnodes{key})
 
     result = parseJson("{}")
     result{"columns"}= %*columns
