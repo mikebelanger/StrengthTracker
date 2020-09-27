@@ -6,6 +6,27 @@ import sequtils, sugar
 converter load_table*(t: TableNames): RDB =
     RDB().table(t)
 
+proc params_to*(jnodes: seq[JsonNode], t: typedesc): seq[t] =
+    for j in jnodes:
+        echo j
+        try:
+            result.add(
+                j.to(t)
+            )
+        except:
+            echo getCurrentExceptionMsg()
+
+proc create*(objects: seq[object], t: TableNames): seq[JsonNode] =
+    var to_insert: seq[JsonNode]
+
+    for obj in objects:
+        try:
+            to_insert.add(%*obj)
+        except:
+            echo getCurrentExceptionMsg()
+    
+    to_insert.create(t)
+
 proc create*(params: seq[JsonNode], t: TableNames): seq[JsonNode] =
     var table = RDB().table(t)
 
@@ -90,9 +111,9 @@ proc jexcel_user_table*(jnodes: seq[JsonNode]): UserTable =
         result = UserTable(
             data: jnodes.map((each_node) => each_node.to(UserRow)),
             columns: [
-                JExcelColumn(`type`: Numeric, title: "id", width: 100),
-                JExcelColumn(`type`: Text, title: "name", width: 100),
-                JExcelColumn(`type`: Text, title: "email", width: 250),
+                JExcelColumn(`type`: Hidden, title: "Id", width: 100),
+                JExcelColumn(`type`: Text, title: "Name", width: 100),
+                JExcelColumn(`type`: Text, title: "Email", width: 250),
                 JExcelColumn(`type`: CheckBox, title: "Active", width: 50)
             ]
         )

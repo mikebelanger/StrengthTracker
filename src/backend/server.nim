@@ -3,7 +3,7 @@ import options, asyncdispatch
 import jester
 
 import json
-import ../app_routes, schema, crud, allographer/query_builder
+import ../app_routes, schema, crud, allographer/query_builder, sequtils, sugar
 
 converter route_to_string(r: Routes): string = 
     $r
@@ -36,6 +36,17 @@ routes:
                 resp "could not get value"
             else:
                 resp Http200, $(%*response)
+
+    post "/create_user.json":
+
+        let response = 
+            request.body
+            .string_to_json
+            .params_to(NewUser)
+            .create(User)
+            .jexcel_user_table
+
+        resp $(%*response)
 
     get "/read_all_users.json":
 

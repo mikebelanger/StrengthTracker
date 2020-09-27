@@ -14,6 +14,10 @@ type
         email = "email"
         active = "active"
 
+    NewUser* = object
+        name*, email*: string
+        active: bool
+
     SessionSchema* = enum
         session_date = "session_date"
 

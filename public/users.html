@@ -79,13 +79,6 @@
                     columns: response.columns,
                     wordWrap: true
                 });
-                
-                // hide ID and kind columns from user.  Basically the equivalent of a hidden field
-                table.options.columns.forEach(function(column, index) {
-                    if (column.title == 'id' || column.title == 'kind') {
-                        table.hideColumn(index);
-                    }
-                })
 
             }
 
@@ -98,12 +91,10 @@
                 var user_input = {}
 
                 instance.jexcel.options.columns.forEach(function(column, index){
-                    user_input[column.title] = row_data[index];
+                    user_input[column.title.toLowerCase()] = row_data[index];
                 })
 
-                if (user_input.kind == "") {
-                    user_input.kind = "New"
-                }
+                console.log("user input", user_input);
                 
                 if (is_complete(user_input)) {
                     var which_url;
