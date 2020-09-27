@@ -3,7 +3,8 @@ import json, schema, crud
 let new_users = @[
     """{
         "name" : "Mike",
-        "email": "mikejamesbelanger@gmail.com"
+        "email": "mikejamesbelanger@gmail.com",
+        "active" : true
         }
     """,
 

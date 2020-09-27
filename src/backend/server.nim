@@ -43,10 +43,6 @@ routes:
             User
             .select
             .get
-            .to_jexcel
+            .jexcel_user_table
 
-        case response.len:
-            of 0:
-                resp "could not get value"
-            else:
-                resp Http200, $(%*response)
+        resp $(%*response)

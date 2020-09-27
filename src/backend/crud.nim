@@ -1,7 +1,7 @@
 import allographer/query_builder
 import schema
 import json
-import sequtils
+import sequtils, sugar
 
 converter load_table*(t: TableNames): RDB =
     RDB().table(t)
@@ -68,8 +68,8 @@ proc delete*(params: seq[JsonNode], t: TableNames): bool =
 proc to_jexcel*(json_nodes: seq[JsonNode]): JsonNode =
     var columns, data: seq[JsonNode]
 
-    for jnodes in json_nodes:
-        for key in jnodes.keys:
+    for jnode in json_nodes:
+        for key in jnode.keys:
             if not (columns.anyIt(it{"title"}.getStr == key)):
                 columns.add(
                     %*{
@@ -79,8 +79,23 @@ proc to_jexcel*(json_nodes: seq[JsonNode]): JsonNode =
                     }
                 )
             
-            data.add(jnodes{key})
+            data.add(jnode)
 
     result = parseJson("{}")
     result{"columns"}= %*columns
     result{"data"}= %*data
+
+proc jexcel_user_table*(jnodes: seq[JsonNode]): UserTable =
+    try:
+        result = UserTable(
+            data: jnodes.map((node) => node.to(UserRow)),
+            columns: [
+                JExcelColumn(`type`: Numeric, title: "id", width: 100),
+                JExcelColumn(`type`: Text, title: "name", width: 100),
+                JExcelColumn(`type`: Text, title: "email", width: 250),
+                JExcelColumn(`type`: CheckBox, title: "Active", width: 50)
+            ]
+        )
+
+    except:
+        echo getCurrentExceptionMsg()

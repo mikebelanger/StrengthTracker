@@ -12,13 +12,46 @@ type
     UserSchema* = enum
         name = "name"
         email = "email"
+        active = "active"
 
     SessionSchema* = enum
         session_date = "session_date"
 
     WorkoutSchema* = enum
         reps = "reps"
+
+    JexcelDropdownTypes* = enum
+        Active
+        MovementPlane
+
+    # Jexcel specifc
+    JexcelColumnType* = enum
+        Text = "text"
+        Numeric = "numeric"
+        Hidden = "hidden"
+        Dropdown = "dropdown"
+        Autocomplete = "autocomplete"
+        Checkbox = "checkbox"
+        Radio = "radio"
+        Calendar = "calendar"
+        Image = "image"
+        Color = "color"
         
+    JExcelColumn* = object
+        `type`*: JexcelColumnType
+        title*: string
+        width*: int
+
+    UserRow* = object
+        id*: int
+        name*, email*: string
+        active*: bool
+
+    UserColumns* = array[4, JExcelColumn]
+
+    UserTable* = object
+        data*: seq[UserRow]
+        columns*: UserColumns
 
 converter table_to_string*(t: TableNames): string =
     $t
@@ -39,7 +72,8 @@ let
     user* = table(User, [
         Column().increments(id),
         Column().string(name).unique(),
-        Column().string(email).unique()
+        Column().string(email).unique(),
+        Column().boolean(active)
     ])
 
     session* = table(Session, [

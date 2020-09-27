@@ -1,4 +1,4 @@
 import allographer/schema_builder
-import ../schema
+import schema
 
 schema(app_schema)
