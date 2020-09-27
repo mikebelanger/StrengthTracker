@@ -1,6 +1,6 @@
 import options, asyncdispatch
 
-import httpx
+import jester
 
 import json
 import ../app_routes, schema, crud, allographer/query_builder
@@ -8,10 +8,10 @@ import ../app_routes, schema, crud, allographer/query_builder
 converter route_to_string(r: Routes): string = 
     $r
 
-proc string_to_json(str: Option[string]): seq[JsonNode] =
-    if str.isSome:
+proc string_to_json(str: string): seq[JsonNode] =
+    if str.len > 0:
         try:
-            result.add(str.get.parseJson)
+            result.add(str.parseJson)
         except:
             echo getCurrentExceptionMsg()
 
@@ -20,47 +20,33 @@ proc read_param*(json_nodes: seq[JsonNode], param: Basic | UserSchema | SessionS
         if jnode.has_key(param):
             result.add(jnode)
 
-proc onRequest(req: Request): Future[void] {.gcsafe.} =
+routes:
+    
+    get "/read_user.json":
 
-    if req.httpMethod == some(HttpGet):
-        case req.path.get()
-            of Home:
-                req.send("Hello World")
+        let response = 
+            request.body
+            .string_to_json
+            .read_param(id)
+            .read(User)
+            .get
 
-            of ReadUser:
-
-                let response = 
-                    req.body
-                    .string_to_json
-                    .read_param(id)
-                    .read(User)
-                    .get
-
-                case response.len:
-                    of 0:
-                        req.send("could not get value")
-                    else:
-                        req.send(Http200, $(response))
-
-            of ReadAllUsers:
-
-                let response = 
-                    User
-                    .select
-                    .get
-                    .to_jexcel
-
-                case response.len:
-                    of 0:
-                        req.send("could not get value")
-                    else:
-                        req.send(Http200, $(%*response))
-
-            of "/users.html":
-                let user_html = readFile("/Users/mikebelanger/Dev/Personal/StrengthTracker/public/users.html")
-                req.send(Http200, $user_html)
-
+        case response.len:
+            of 0:
+                resp "could not get value"
             else:
-                req.send(Http404)
+                resp Http200, $(%*response)
 
-run(onRequest)
+    get "/read_all_users.json":
+
+        let response = 
+            User
+            .select
+            .get
+            .to_jexcel
+
+        case response.len:
+            of 0:
+                resp "could not get value"
+            else:
+                resp Http200, $(%*response)

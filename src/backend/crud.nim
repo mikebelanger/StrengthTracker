@@ -64,7 +64,7 @@ proc delete*(params: seq[JsonNode], t: TableNames): bool =
                 echo getCurrentExceptionMsg()
                 return false
 
-proc to_jexcel*(json_nodes: seq[JsonNode]): seq[JsonNode] =
+proc to_jexcel*(json_nodes: seq[JsonNode]): JsonNode =
     var columns, data: seq[string]
 
     for jnodes in json_nodes:
@@ -73,3 +73,7 @@ proc to_jexcel*(json_nodes: seq[JsonNode]): seq[JsonNode] =
                 columns.add(key)
             
             data.add(jnodes{key}.getStr)
+
+    result = parseJson("{}")
+    result{"columns"}= %*columns
+    result{"data"}= %*data
